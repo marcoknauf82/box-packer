@@ -1,0 +1,1880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Aachen Move — Box Packer v18</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --p:#534AB7;--pl:#EEEDFE;--pd:#3C3489;
+  --g:#1D9E75;--gl:#E1F5EE;--gd:#0F6E56;
+  --a:#BA7517;--al:#FAEEDA;--ad:#854F0B;
+  --r:#E24B4A;--rl:#FCEBEB;--rd:#A32D2D;
+  --border:#e0ddf7;--surface:#ffffff;--bg:#f5f4fc;
+  --text:#1a1a2e;--muted:#6b6b8a;--faint:#a0a0b8;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:var(--text);background:var(--bg);min-height:100vh;font-size:15px}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit}
+.app{max-width:520px;margin:0 auto;padding:1rem 1rem 3rem}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:.75rem 0 1rem;border-bottom:0.5px solid var(--border);margin-bottom:1.25rem}
+.top-title{font-size:16px;font-weight:600;color:var(--pd)}
+.top-sub{font-size:11px;color:var(--muted)}
+.steps-nav{display:flex;gap:4px;margin-bottom:1.5rem}
+.step-dot{flex:1;height:3px;border-radius:2px;background:var(--border);transition:background .3s}
+.step-dot.done{background:var(--p)}.step-dot.active{background:var(--p);opacity:.55}
+.step-header{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--p);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+.step-title{font-size:17px;font-weight:600}
+.card{background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:1rem 1.125rem;margin-bottom:1rem}
+.tier-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem}
+.tier-btn{padding:10px 4px;border:1.5px solid var(--border);border-radius:8px;background:none;font-size:12px;font-weight:600;color:var(--muted);text-align:center;transition:all .15s;line-height:1.5}
+.tier-btn.sel-A{border-color:var(--g);background:var(--gl);color:var(--gd)}
+.tier-btn.sel-B{border-color:var(--a);background:var(--al);color:var(--ad)}
+.tier-btn.sel-C{border-color:var(--p);background:var(--pl);color:var(--pd)}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.field input,.field textarea{width:100%;padding:10px 12px;border:0.5px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px;transition:border-color .15s}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--p)}
+.upload-zone{border:1.5px dashed var(--border);border-radius:10px;padding:2rem 1rem;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:1rem;background:var(--surface)}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--p);background:var(--pl)}
+.upload-text{font-size:14px;color:var(--muted);margin-top:.5rem}
+.upload-sub{font-size:12px;color:var(--faint);margin-top:4px}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem}
+.photo-thumb{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:0.5px solid var(--border)}
+.photo-thumb img{width:100%;height:100%;object-fit:cover}
+.photo-del{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;border:none;font-size:15px;display:flex;align-items:center;justify-content:center;padding:0}
+.add-photo-cell{aspect-ratio:1;border:1.5px dashed var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:var(--surface);transition:all .15s}
+.add-photo-cell:hover{border-color:var(--p);background:var(--pl)}
+.btn{width:100%;padding:13px;border-radius:9px;font-size:15px;font-weight:600;border:none;transition:all .15s;cursor:pointer}
+.btn-primary{background:var(--p);color:#fff}.btn-primary:hover{background:var(--pd)}
+.btn-primary:disabled{background:#ccc;cursor:not-allowed}
+.btn-secondary{background:var(--surface);color:var(--text);border:0.5px solid var(--border)}
+.btn-secondary:hover{border-color:var(--p);color:var(--p)}
+.btn-success{background:var(--g);color:#fff}.btn-success:hover{background:var(--gd)}
+.btn-sm{padding:7px 14px;font-size:13px;border-radius:7px;width:auto}
+.btn-row{display:flex;gap:8px;margin-top:.5rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin .7s linear infinite}
+.item-list{display:flex;flex-direction:column;gap:6px;margin-bottom:1rem}
+.item-row{display:flex;align-items:center;gap:8px;padding:10px 11px;border:0.5px solid var(--border);border-radius:8px;background:var(--surface)}
+.item-row.removed{opacity:.4;background:var(--bg)}
+.item-text{flex:1;font-size:14px;color:var(--text);outline:none;min-width:0;word-break:break-word}
+.item-del{width:28px;height:28px;border-radius:6px;border:0.5px solid var(--border);background:none;color:var(--muted);font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;transition:all .15s}
+.item-del:hover{background:var(--rl);border-color:var(--r);color:var(--rd)}
+.item-restore{font-size:12px;padding:5px 10px;border:0.5px solid var(--g);border-radius:5px;background:none;color:var(--gd);white-space:nowrap}
+.add-item-row{display:flex;gap:8px;margin-bottom:1rem}
+.add-item-row input{flex:1;padding:10px 12px;border:0.5px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px}
+.add-item-row input:focus{outline:none;border-color:var(--p)}
+.clarify-card{background:var(--pl);border:0.5px solid #CECBF6;border-radius:10px;padding:.875rem 1rem;margin-bottom:1rem}
+.clarify-q{font-size:14px;font-weight:600;color:var(--pd);margin-bottom:10px}
+.clarify-opts{display:flex;flex-direction:column;gap:6px}
+.clarify-opt{padding:10px 12px;border:1.5px solid #CECBF6;border-radius:8px;background:var(--surface);color:var(--text);font-size:14px;text-align:left;transition:all .15s;cursor:pointer}
+.clarify-opt:hover,.clarify-opt.sel{border-color:var(--p);background:var(--pl);color:var(--pd);font-weight:600}
+.meta-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem}
+.status-bar{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:1rem;line-height:1.5}
+.status-ok{background:var(--gl);color:var(--gd);border:0.5px solid #9FE1CB}
+.status-err{background:var(--rl);color:var(--rd);border:0.5px solid #F7C1C1}
+.status-info{background:var(--pl);color:var(--pd);border:0.5px solid #CECBF6}
+.status-warn{background:var(--al);color:var(--ad);border:0.5px solid #FAC775}
+.label-preview{border:1px solid #ccc;border-radius:6px;overflow:hidden;background:#fff;color:#111;margin-bottom:1rem}
+.lp-stripe{height:10px}.lp-body{display:flex;padding:10px 12px;gap:10px}
+.lp-main{flex:1;display:flex;flex-direction:column;justify-content:space-between;min-width:0}
+.lp-id{font-family:monospace;font-size:28px;font-weight:700;line-height:1;color:#111}
+.lp-badge{display:inline-block;margin-top:4px;font-size:8px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:3px}
+.lp-desc{font-size:10px;font-weight:600;color:#222;line-height:1.3;margin-top:5px}
+.lp-items{font-family:monospace;font-size:7px;color:#666;line-height:1.6;margin-top:4px}
+.lp-bottom{margin-top:8px;padding-top:5px;border-top:.5px solid #e8e8e8;display:flex;justify-content:space-between;align-items:flex-end}
+.lp-dest{font-size:8px;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:.04em}
+.lp-tag{font-family:monospace;font-size:7px;color:#aaa}
+.lp-divider{width:1px;background:#eee;flex-shrink:0;align-self:stretch;margin:0 2px}
+.lp-qr-side{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;flex-shrink:0;width:76px}
+.lp-qr-side canvas{border:1px solid #e5e5e5;border-radius:3px;display:block}
+.lp-qr-hint{font-size:7px;color:#999;text-align:center;line-height:1.3}
+.registry{margin-top:2rem;padding-top:1.25rem;border-top:0.5px solid var(--border)}
+.reg-header{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.reg-counts{display:flex;gap:10px}
+.reg-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;margin-bottom:5px;background:var(--surface)}
+.reg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.reg-id{font-family:monospace;font-size:12px;font-weight:600;min-width:42px;color:var(--pd)}
+.reg-desc{font-size:12px;color:var(--muted);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reg-n{font-size:11px;color:var(--faint)}
+.info-box{background:var(--surface);border:0.5px solid var(--border);border-radius:8px;padding:.75rem 1rem;font-size:13px;color:var(--muted);margin-bottom:1rem;line-height:1.6}
+.err-detail{background:#fff0f0;border:0.5px solid #F7C1C1;border-radius:8px;padding:10px 12px;font-size:11px;font-family:monospace;color:#A32D2D;margin-top:8px;word-break:break-all;line-height:1.6}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface);font-size:15px;font-weight:600;color:var(--text);cursor:pointer;transition:all .15s}
+.google-btn:hover{border-color:var(--p);background:var(--pl)}
+.google-btn svg{flex-shrink:0}
+.auth-badge{display:flex;align-items:center;gap:6px;font-size:12px;padding:5px 10px;border-radius:6px;background:var(--gl);color:var(--gd);border:0.5px solid #9FE1CB}
+.settings-row{display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:0.5px solid var(--border);margin-bottom:.5rem}
+.settings-label{font-size:13px;color:var(--muted);flex:1}
+.key-input{font-family:monospace;font-size:12px;letter-spacing:.05em}
+.menu-grid{display:flex;flex-direction:column;gap:10px;margin-top:.5rem}
+.menu-card{display:flex;align-items:center;gap:14px;padding:16px;border:0.5px solid var(--border);border-radius:12px;background:var(--surface);cursor:pointer;transition:all .15s}
+.menu-card:hover,.menu-card:active{border-color:var(--p);background:var(--pl)}
+.menu-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.menu-label{font-size:15px;font-weight:600;color:var(--text)}
+.menu-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.back-link{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--p);font-weight:600;cursor:pointer;margin-bottom:1rem;padding:4px 0}
+.back-link:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top-bar">
+    <div><div class="top-title">Box packer</div><div class="top-sub">Aachen move · June 2026</div></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+      <div id="top-stats" style="font-size:12px;color:var(--muted);text-align:right"></div>
+      <div id="auth-indicator"></div>
+    </div>
+  </div>
+  <div id="root"></div>
+</div>
+
+<script>
+// roundRect polyfill for older Android Chrome
+if(!CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
+    if(w<2*r)r=w/2;if(h<2*r)r=h/2;
+    this.beginPath();this.moveTo(x+r,y);
+    this.arcTo(x+w,y,x+w,y+h,r);this.arcTo(x+w,y+h,x,y+h,r);
+    this.arcTo(x,y+h,x,y,r);this.arcTo(x,y,x+w,y,r);this.closePath();
+    return this;
+  };
+}
+
+const SUPABASE_URL = "https://csmkqnkdisimkrbqfdgn.supabase.co";
+const SUPABASE_KEY = "sb_publishable_KTvLw4NyGF5EXjzJmg5Bqw_jyozUGEv";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const SHEET_ID = "1PJWbuRemzJIMXFgyxln4256B6Z4Sy7nnyI7-g7gLtHw";
+const SHEET_GID = "0";
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/"+SHEET_ID+"/edit?gid="+SHEET_GID;
+const GOOGLE_CLIENT_ID = "525707917202-a5rasrh9gv5qk0gd9rcmijor5ma790dm.apps.googleusercontent.com";
+const SCOPES = "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive";
+const ROOT_FOLDER_NAME = "Aachen Move";
+const REGISTRY_SHEET = "Box Registry";
+const ITEMS_SHEET = "Item Detail";
+const ITEM_REGISTRY_SHEET = "Item Registry";
+const ITEM_COUNTER = {A:0,B:0,C:0};
+
+const TIER = {
+  A:{stripe:"#1D9E75",bb:"#E1F5EE",bt:"#0F6E56",lbl:"Tier A · Daily life",dot:"#1D9E75",name:"Daily life"},
+  B:{stripe:"#BA7517",bb:"#FAEEDA",bt:"#854F0B",lbl:"Tier B · Karting gear",dot:"#BA7517",name:"Karting gear"},
+  C:{stripe:"#534AB7",bb:"#EEEDFE",bt:"#3C3489",lbl:"Tier C · Long-term storage",dot:"#534AB7",name:"Storage"},
+};
+
+const counters = {A:0,B:0,C:1};
+let googleToken = null;
+let googleUser = null;
+
+let S = {
+  screen:"menu", // "menu", "pack", "registry", "registry-detail", "documents"
+  step:0, mode:"box", tier:"C", dest:"", desc:"", fragile:false,
+  packedBy:"Marco",
+  photos:[], items:[], removed:[], itemCategories:{}, itemValues:{}, itemValueSources:{},
+  singleValue:0, singleValueSource:"", singleCategory:"Household", singleDimensions:"",
+  clarifications:[], clarifyIdx:0,
+  boxId:"", sheetResult:"", editingItem:null, driveFolderUrl:"", driveError:"",
+  registry:[],
+  detailBox:null, detailItems:[], detailLoading:false,
+};
+
+function getApiKey(){return localStorage.getItem("anthropic_key")||"";}
+function saveApiKey(k){localStorage.setItem("anthropic_key",k);}
+
+const root = document.getElementById("root");
+function q(s){return document.querySelector(s);}
+function qq(s){return Array.from(document.querySelectorAll(s));}
+function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function chunkItems(items,max){
+  const lines=[];let line="";
+  items.forEach(item=>{
+    const seg=line?" · "+item:item;
+    if((line+seg).length>max&&line){lines.push(line);line=item;}
+    else line+=seg;
+  });
+  if(line)lines.push(line);
+  return lines;
+}
+function updateTopStats(){
+  const ca={A:0,B:0,C:0};S.registry.forEach(b=>ca[b.tier]++);
+  const el=document.getElementById("top-stats");
+  if(el)el.innerHTML=`${S.registry.length} boxes&nbsp; <span style="color:#0F6E56">A:${ca.A}</span> <span style="color:#854F0B">B:${ca.B}</span> <span style="color:#3C3489">C:${ca.C}</span>`;
+  const ai=document.getElementById("auth-indicator");
+  if(ai){
+    if(googleUser){
+      ai.innerHTML=`<div class="auth-badge" onclick="startGoogleAuth()" title="Click to reconnect" style="cursor:pointer"><svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="6" fill="#1D9E75"/><path d="M3 6l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>${esc(googleUser.split("@")[0])} ↺</div>`;
+    } else {
+      ai.innerHTML="";
+    }
+  }
+}
+
+function nav(){
+  return '<div class="steps-nav">'+[0,1,2,3,4].map(i=>
+    `<div class="step-dot ${i<S.step?"done":i===S.step?"active":""}"></div>`
+  ).join("")+"</div>";
+}
+function r(){root.innerHTML=view();bind();updateTopStats();}
+function view(){
+  if(S.screen === "menu") return vMenu();
+  if(S.screen === "registry") return vRegistryBrowser();
+  if(S.screen === "registry-detail") return vBoxDetail();
+  if(S.screen === "documents") return vDocuments();
+  // default: pack flow
+  const stepFn = [v0,v1,S.mode==="item"?v2item:v2,v3,v4];
+  return nav()+stepFn[S.step]()+vreg();
+}
+
+/* ── Main Menu ── */
+function vMenu(){
+  const ca={A:0,B:0,C:0}; S.registry.forEach(b=>ca[b.tier]++);
+  const totalBoxes = S.registry.length;
+  return `
+  <div style="margin-bottom:1.5rem">
+    <div style="font-size:15px;color:var(--muted)">What would you like to do?</div>
+  </div>
+  <div class="menu-grid">
+    <div class="menu-card" id="menu-pack">
+      <div class="menu-icon" style="background:var(--gl)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--gd)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+        </svg>
+      </div>
+      <div>
+        <div class="menu-label">Pack a Box</div>
+        <div class="menu-sub">Photograph, identify items, print label</div>
+      </div>
+    </div>
+    <div class="menu-card" id="menu-registry">
+      <div class="menu-icon" style="background:var(--pl)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--pd)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+      </div>
+      <div>
+        <div class="menu-label">Box Registry</div>
+        <div class="menu-sub">${totalBoxes > 0 ? totalBoxes + ' packed · A:' + ca.A + ' B:' + ca.B + ' C:' + ca.C : 'No boxes packed yet'}</div>
+      </div>
+    </div>
+    <div class="menu-card" id="menu-docs">
+      <div class="menu-icon" style="background:var(--al)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+        </svg>
+      </div>
+      <div>
+        <div class="menu-label">Documents</div>
+        <div class="menu-sub">PDF inventory, customs declaration</div>
+      </div>
+    </div>
+  </div>
+  ${totalBoxes > 0 ? `<div style="margin-top:1.5rem;padding-top:1rem;border-top:0.5px solid var(--border)">
+    <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Recent</div>
+    ${[...S.registry].reverse().slice(0,4).map(b=>`<div class="reg-item">
+      <div class="reg-dot" style="background:${TIER[b.tier].dot}"></div>
+      <div class="reg-id">${b.id}</div>
+      <div class="reg-desc">${esc(b.desc)}</div>
+      <div class="reg-n" style="color:${b.mode==='item'?'var(--g)':'var(--faint)'}">${b.mode==='item'?'item':b.count}</div>
+    </div>`).join("")}
+  </div>` : ''}`;
+}
+
+/* ── Registry Browser (placeholder — build out next session) ── */
+function vRegistryBrowser(){
+  const ca={A:0,B:0,C:0}; S.registry.forEach(b=>ca[b.tier]++);
+  return `
+  <div class="back-link" id="back-menu">← Menu</div>
+  <div class="step-header"><div class="step-num" style="background:var(--p)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+  </div><div class="step-title">Box Registry</div></div>
+  ${S.registry.length === 0 ? '<div class="info-box">No boxes packed yet. Go pack your first box!</div>' :
+  `<div style="margin-bottom:12px;font-size:13px;color:var(--muted)">${S.registry.length} items · <span style="color:#0F6E56">A:${ca.A}</span> <span style="color:#854F0B">B:${ca.B}</span> <span style="color:#3C3489">C:${ca.C}</span></div>
+  ${S.registry.map(b=>`<div class="reg-item" style="cursor:pointer" data-box-id="${b.id}">
+    <div class="reg-dot" style="background:${TIER[b.tier].dot}"></div>
+    <div class="reg-id">${b.id}</div>
+    <div class="reg-desc">${esc(b.desc)}</div>
+    <div class="reg-n" style="color:${b.mode==='item'?'var(--g)':'var(--faint)'}">${b.mode==='item'?'item':b.count}</div>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+  </div>`).join("")}`}`;
+}
+
+/* ── Load box detail from Supabase ── */
+async function loadBoxDetail(boxCode){
+  S.detailLoading = true;
+  S.detailItems = [];
+  S.screen = "registry-detail";
+  // Find registry entry for header info
+  S.detailBox = S.registry.find(b => b.id === boxCode) || {id: boxCode, tier:"C", desc:"", dest:""};
+  r(); // show loading state immediately
+
+  const isItem = boxCode.startsWith("I-");
+
+  if(isItem){
+    // Load standalone item from Supabase
+    const {data, error} = await sb
+      .from("standalone_items")
+      .select("*")
+      .eq("move_id", MOVE_ID)
+      .eq("item_code", boxCode)
+      .single();
+
+    if(!error && data){
+      S.detailBox = {
+        id: data.item_code, tier: data.tier, desc: data.description,
+        dest: data.destination_room, count: 1, mode: "item",
+        fragile: data.is_fragile, packedBy: data.packed_by,
+        packedAt: data.packed_at, valueCents: data.est_value_cents,
+        valueSource: data.value_source, dimensions: data.dimensions,
+        driveUrl: data.drive_folder_url
+      };
+      S.detailItems = [{
+        description: data.description, category: data.category,
+        valueCents: data.est_value_cents, valueSource: data.value_source
+      }];
+    }
+  } else {
+    // Load box from Supabase
+    const {data: box, error: boxErr} = await sb
+      .from("boxes")
+      .select("*")
+      .eq("move_id", MOVE_ID)
+      .eq("box_code", boxCode)
+      .single();
+
+    if(!boxErr && box){
+      S.detailBox = {
+        id: box.box_code, tier: box.tier, desc: box.description,
+        dest: box.destination_room, count: box.item_count, mode: "box",
+        fragile: box.is_fragile, packedBy: box.packed_by,
+        packedAt: box.packed_at, valueCents: box.est_value_cents,
+        driveUrl: box.drive_folder_url
+      };
+
+      // Load items inside this box
+      const {data: items, error: itemErr} = await sb
+        .from("box_items")
+        .select("item_number, category, description, quantity, est_value_cents, value_source")
+        .eq("box_id", box.id)
+        .order("item_number", {ascending: true});
+
+      if(!itemErr && items){
+        S.detailItems = items.map(i => ({
+          number: i.item_number, description: i.description,
+          category: i.category, quantity: i.quantity,
+          valueCents: i.est_value_cents, valueSource: i.value_source
+        }));
+      }
+    }
+  }
+
+  S.detailLoading = false;
+  r();
+}
+
+/* ── Box Detail View ── */
+function vBoxDetail(){
+  const b = S.detailBox;
+  if(!b) return '<div class="back-link" id="back-registry">← Registry</div><div class="info-box">Box not found.</div>';
+  if(S.detailLoading) return `
+    <div class="back-link" id="back-registry">← Registry</div>
+    <div style="text-align:center;padding:2rem;color:var(--muted)">Loading ${esc(b.id)}…</div>`;
+
+  const t = TIER[b.tier] || TIER.C;
+  const totalValue = b.valueCents ? (b.valueCents / 100).toFixed(2) : null;
+  const hasItems = S.detailItems.length > 0;
+  const hasDrive = !!b.driveUrl;
+
+  return `
+  <div class="back-link" id="back-registry">← Registry</div>
+
+  <div class="card" style="border-left:4px solid ${t.stripe}">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <div style="font-family:monospace;font-size:22px;font-weight:700;color:${t.bt}">${esc(b.id)}</div>
+      <div style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;background:${t.bb};color:${t.bt}">${t.lbl}</div>
+      ${b.fragile ? '<div style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;background:var(--rl);color:var(--rd)">⚠ Fragile</div>' : ''}
+    </div>
+    ${b.desc ? `<div style="font-size:14px;margin-bottom:6px">${esc(b.desc)}</div>` : ''}
+    <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)">
+      ${b.dest ? `<div>→ ${esc(b.dest)}</div>` : ''}
+      ${b.packedBy ? `<div>Packed by ${esc(b.packedBy)}</div>` : ''}
+      ${b.packedAt ? `<div>${b.packedAt}</div>` : ''}
+      ${totalValue ? `<div style="font-weight:600;color:var(--text)">$${parseFloat(totalValue).toLocaleString()}</div>` : ''}
+    </div>
+  </div>
+
+  ${hasDrive ? `
+  <div class="card">
+    <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Photos</div>
+    <a href="${esc(b.driveUrl)}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--p);text-decoration:none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      Open photos in Google Drive
+    </a>
+  </div>` : ''}
+
+  ${hasItems ? `
+  <div class="card">
+    <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Items (${S.detailItems.length})</div>
+    ${S.detailItems.map((item, i) => `
+      <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;${i < S.detailItems.length - 1 ? 'border-bottom:0.5px solid var(--border)' : ''}">
+        <div style="font-family:monospace;font-size:11px;color:var(--faint);min-width:20px;padding-top:2px">${item.number || i+1}</div>
+        <div style="flex:1">
+          <div style="font-size:13px">${esc(item.description)}</div>
+          ${item.category ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(item.category)}</div>` : ''}
+        </div>
+        ${item.valueCents ? `<div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap">$${(item.valueCents/100).toLocaleString()}</div>` : ''}
+      </div>
+    `).join("")}
+    ${totalValue ? `
+    <div style="display:flex;justify-content:flex-end;padding-top:10px;border-top:0.5px solid var(--border);margin-top:4px">
+      <div style="font-size:13px;font-weight:700;color:var(--text)">Total: $${parseFloat(totalValue).toLocaleString()}</div>
+    </div>` : ''}
+  </div>` : ''}
+
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-secondary" id="btn-reprint-label" style="flex:1">
+      <span style="display:flex;align-items:center;justify-content:center;gap:6px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Reprint label
+      </span>
+    </button>
+  </div>`;
+}
+
+/* ── Reprint label from detail view ── */
+function reprintFromDetail(){
+  if(!S.detailBox) return;
+  const b = S.detailBox;
+  // Load detail data into the packing state so the existing label functions work
+  S.boxId = b.id;
+  S.tier = b.tier;
+  S.desc = b.desc || "";
+  S.dest = b.dest || "";
+  S.fragile = !!b.fragile;
+  S.packedBy = b.packedBy || "Marco";
+  S.mode = b.mode || "box";
+  // Put items into the items array for label generation
+  S.items = S.detailItems.map(i => i.description);
+  S.removed = [];
+  S.itemCategories = {};
+  S.itemValues = {};
+  S.detailItems.forEach((item, i) => {
+    if(item.category) S.itemCategories[i] = item.category;
+    if(item.valueCents) S.itemValues[i] = item.valueCents / 100;
+  });
+  // Jump to the label step
+  S.screen = "pack";
+  S.step = 4;
+  r();
+}
+
+/* ── Documents (placeholder — build out later) ── */
+function vDocuments(){
+  return `
+  <div class="back-link" id="back-menu">← Menu</div>
+  <div class="step-header"><div class="step-num" style="background:var(--a)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+  </div><div class="step-title">Documents</div></div>
+  <div class="info-box">Coming soon — PDF inventory list and customs declaration forms will be generated here.</div>`;
+}
+
+/* ── Step 0: Setup ── */
+function v0(){
+  const hasKey = !!getApiKey();
+  return `
+  <div class="back-link" id="back-menu">← Menu</div>
+  <div class="step-header"><div class="step-num">1</div><div class="step-title">${S.mode==="item"?"Item":"Box"} setup</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem">
+    <button id="btn-mode-box" style="padding:12px;border-radius:9px;border:1.5px solid ${S.mode==="box"?"var(--p)":"var(--border)"};background:${S.mode==="box"?"var(--pl)":"var(--surface)"};color:${S.mode==="box"?"var(--pd)":"var(--muted)"};font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">
+      Box<div style="font-size:10px;font-weight:400;margin-top:2px">Multiple items packed</div>
+    </button>
+    <button id="btn-mode-item" style="padding:12px;border-radius:9px;border:1.5px solid ${S.mode==="item"?"var(--p)":"var(--border)"};background:${S.mode==="item"?"var(--pl)":"var(--surface)"};color:${S.mode==="item"?"var(--pd)":"var(--muted)"};font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">
+      Item<div style="font-size:10px;font-weight:400;margin-top:2px">Bulky / furniture</div>
+    </button>
+  </div>
+  ${!hasKey?`<div class="card">
+    <div style="font-size:13px;font-weight:600;color:var(--pd);margin-bottom:8px">Anthropic API key</div>
+    <div class="field" style="margin-bottom:8px">
+      <input id="api-key-input" class="key-input" type="password" placeholder="sk-ant-..." autocomplete="off">
+    </div>
+    <button class="btn btn-primary" id="btn-save-key" style="margin-bottom:4px">Save key</button>
+    <div style="font-size:11px;color:var(--faint);margin-top:4px">Saved locally on this device only. Never sent anywhere except Anthropic.</div>
+  </div>`:`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding:8px 12px;background:var(--gl);border-radius:8px;border:0.5px solid #9FE1CB">
+    <span style="font-size:13px;color:var(--gd)">API key saved</span>
+    <button class="btn-sm btn-secondary" id="btn-clear-key" style="font-size:11px;padding:4px 10px;border-radius:5px;border:0.5px solid var(--border);background:none;color:var(--muted)">Change</button>
+  </div>`}
+  <div class="card">
+    <div class="tier-row">
+      ${["A","B","C"].map(t=>`<button class="tier-btn${S.tier===t?" sel-"+t:""}" id="tb-${t}">
+        <div style="font-size:16px;font-weight:700">${t}</div>
+        <div style="font-size:10px;font-weight:400;margin-top:2px">${TIER[t].name}</div>
+      </button>`).join("")}
+    </div>
+    <div class="field">
+      <label>Destination room in Aachen</label>
+      <input id="f-dest" value="${esc(S.dest)}" placeholder="e.g. Marco's office, Basement, Kids room">
+    </div>
+    <div class="field">
+      <label>Description hint (optional)</label>
+      <input id="f-desc" value="${esc(S.desc)}" placeholder="e.g. Winter clothes, Kitchen appliances">
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;margin-top:4px">
+      <input type="checkbox" id="f-fragile" ${S.fragile?"checked":""} style="width:16px;height:16px;accent-color:#534AB7">
+      Mark as fragile
+    </label>
+    <div style="margin-top:12px">
+      <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Packed by</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button id="pb-marco" style="padding:9px;border-radius:8px;border:1.5px solid ${S.packedBy==="Marco"?"var(--p)":"var(--border)"};background:${S.packedBy==="Marco"?"var(--pl)":"var(--surface)"};color:${S.packedBy==="Marco"?"var(--pd)":"var(--muted)"};font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Marco</button>
+        <button id="pb-geetha" style="padding:9px;border-radius:8px;border:1.5px solid ${S.packedBy==="Geetha"?"var(--p)":"var(--border)"};background:${S.packedBy==="Geetha"?"var(--pl)":"var(--surface)"};color:${S.packedBy==="Geetha"?"var(--pd)":"var(--muted)"};font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Geetha</button>
+      </div>
+    </div>
+  </div>
+  <div style="margin-bottom:1rem">
+    ${googleUser
+      ? `<div class="status-bar status-ok" style="margin-bottom:8px">Google Sheets connected as ${esc(googleUser)}</div>`
+      : `<button class="google-btn" id="btn-google-auth">
+          <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.826.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/></svg>
+          Connect Google Sheets
+        </button>`}
+  </div>
+  ${hasKey?`<button class="btn btn-secondary" id="btn-test-key" style="margin-bottom:8px">Test API key connection</button>`:""}
+  <button class="btn btn-primary" id="btn-next0" ${(!S.dest||!hasKey)?"disabled":""}>Next — add photos</button>`;
+}
+
+/* ── Step 1: Photos ── */
+function v1(){
+  const hp=S.photos.length>0;
+  return`
+  <div class="step-header"><div class="step-num">2</div><div class="step-title">Photos of box contents</div></div>
+  <div class="info-box">Shoot straight down from above. Multiple layers = one photo per layer. Up to 4 photos.</div>
+  ${hp?`<div class="photo-grid">
+    ${S.photos.map((p,i)=>`<div class="photo-thumb"><img src="${p}"><button class="photo-del" data-i="${i}">×</button></div>`).join("")}
+    ${S.photos.length<4?`<div class="add-photo-cell" id="add-more"><div style="font-size:24px;color:#aaa">+</div><div style="font-size:11px;color:#aaa;margin-top:4px">Add</div></div>`:""}
+  </div>`:`<div class="upload-zone" id="drop-zone">
+    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="#aaa" stroke-width="1.5" style="display:block;margin:0 auto">
+      <rect x="4" y="10" width="32" height="24" rx="3"/><circle cx="20" cy="22" r="6"/>
+      <path d="M14 10V8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/>
+    </svg>
+    <div class="upload-text">Tap to take photo or choose file</div>
+    <div class="upload-sub">Up to 4 images · JPG or PNG</div>
+  </div>`}
+  <input type="file" id="file-input" accept="image/*" multiple capture="environment" style="display:none">
+  <div class="btn-row">
+    <button class="btn btn-secondary" id="btn-back1" style="flex:1">Back</button>
+    <button class="btn btn-primary" id="btn-analyze" style="flex:2" ${!hp?"disabled":""}>${S.mode==="item"?"Identify item":"Analyze photos"}</button>
+  </div>`;
+}
+
+/* ── Step 2: Review ── */
+/* ── Step 3a: Item review (single item mode) ── */
+function v2item(){
+  const cur=S.clarifications[S.clarifyIdx];
+  return`
+  <div class="step-header"><div class="step-num">3</div><div class="step-title">Review item</div></div>
+  ${S.photos.length>0?`<div style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px">
+    ${S.photos.map((p,i)=>`
+      <div onclick="openLightbox(${i})" style="position:relative;width:80px;height:80px;flex-shrink:0;border-radius:8px;overflow:hidden;cursor:pointer;border:0.5px solid var(--border)">
+        <img src="${p}" style="width:100%;height:100%;object-fit:cover">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.18)">
+          <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+            <circle cx="9" cy="9" r="5"/><line x1="13.5" y1="13.5" x2="17" y2="17"/>
+            <line x1="7" y1="9" x2="11" y2="9"/><line x1="9" y1="7" x2="9" y2="11"/>
+          </svg>
+        </div>
+      </div>`).join("")}
+  </div>`:""}
+  ${cur?`<div class="clarify-card">
+    <div class="clarify-q">${esc(cur.question)}</div>
+    <div class="clarify-opts">${cur.options.map((o,i)=>`<button class="clarify-opt" data-ci="${S.clarifyIdx}" data-oi="${i}">${esc(o)}</button>`).join("")}</div>
+  </div>`:""}
+  <div class="card">
+    <div class="field"><label>Item description</label>
+      <input id="item-single-desc" value="${esc(S.desc)}" placeholder="e.g. IKEA KALLAX bookshelf, white" oninput="S.desc=this.value"></div>
+    <div class="field"><label>Category</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        ${["Furniture","Appliance","Electronics","Clothing","Karting","Books","Kids / Toys","Art / Decor","Tools","Other"].map(c=>`
+          <button onclick="S.singleCategory='${c}';r()" style="padding:8px 6px;border:1.5px solid ${S.singleCategory===c?"var(--p)":"var(--border)"};border-radius:7px;background:${S.singleCategory===c?"var(--pl)":"var(--surface)"};color:${S.singleCategory===c?"var(--pd)":"var(--text)"};font-size:12px;font-weight:${S.singleCategory===c?"600":"400"};cursor:pointer;font-family:inherit">${c}</button>`).join("")}
+      </div>
+    </div>
+    <div class="meta-row">
+      <div class="field" style="margin:0"><label>Destination room</label>
+        <input id="item-single-dest" value="${esc(S.dest)}" oninput="S.dest=this.value"></div>
+      <div class="field" style="margin:0"><label>Est. value (USD)</label>
+        <input id="item-single-value" type="number" min="0" value="${S.singleValue||0}" oninput="S.singleValue=+this.value;S.singleValueSource='Manual input'">
+        ${S.singleValueSource?`<div style="font-size:10px;color:var(--faint);margin-top:3px;font-style:italic">${esc(S.singleValueSource)}</div>`:""}</div>
+    </div>
+    <div class="field"><label>Dimensions (optional)</label>
+      <input id="item-single-dim" value="${esc(S.singleDimensions)}" placeholder='e.g. 77"W x 15"D x 58"H' oninput="S.singleDimensions=this.value"></div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;margin-top:4px">
+      <input type="checkbox" id="item-fragile" ${S.fragile?"checked":""} onchange="S.fragile=this.checked" style="width:16px;height:16px;accent-color:#534AB7">
+      Mark as fragile
+    </label>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" id="btn-back2" style="flex:1">Back</button>
+    <button class="btn btn-primary" id="btn-confirm" style="flex:2">Confirm — save item</button>
+  </div>`;
+}
+
+function v2(){
+  const active=S.items.filter((_,i)=>!S.removed.includes(i));
+  const cur=S.clarifications[S.clarifyIdx];
+  return`
+  <div class="step-header"><div class="step-num">3</div><div class="step-title">Review items (${active.length})</div></div>
+  ${S.photos.length>0?`<div style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px">
+    ${S.photos.map((p,i)=>`
+      <div onclick="openLightbox(${i})" style="position:relative;width:72px;height:72px;flex-shrink:0;border-radius:8px;overflow:hidden;cursor:pointer;border:0.5px solid var(--border)">
+        <img src="${p}" style="width:100%;height:100%;object-fit:cover">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.18)">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+            <circle cx="9" cy="9" r="5"/><line x1="13.5" y1="13.5" x2="17" y2="17"/>
+            <line x1="7" y1="9" x2="11" y2="9"/><line x1="9" y1="7" x2="9" y2="11"/>
+          </svg>
+        </div>
+      </div>`).join("")}
+  </div>`:""}
+  ${cur?`<div class="clarify-card">
+    <div class="clarify-q">${esc(cur.question)}</div>
+    <div class="clarify-opts">${cur.options.map((o,i)=>`<button class="clarify-opt" data-ci="${S.clarifyIdx}" data-oi="${i}">${esc(o)}</button>`).join("")}</div>
+  </div>`:""}
+  <div class="item-list" id="item-list">
+    ${S.items.map((item,i)=>{
+      const cat=S.itemCategories[i]||getCategory(item);
+      const removed=S.removed.includes(i);
+      return`<div class="item-row${removed?" removed":""}">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;color:var(--text);line-height:1.3;user-select:none">${esc(item)}</div>
+          ${!removed?`<div style="font-size:11px;color:var(--muted);margin-top:2px;display:flex;gap:8px;align-items:center">
+            <span>${esc(cat)}</span>
+            <span style="color:var(--gd);font-weight:500">$${S.itemValues[i]||"?"}</span>
+            ${S.itemValueSources[i]?`<span style="font-size:10px;color:var(--faint);font-style:italic">${esc(S.itemValueSources[i])}</span>`:""}
+          </div>`:""}
+        </div>
+        ${removed
+          ?`<button class="item-restore" data-ri="${i}">Restore</button>`
+          :`<div style="display:flex;gap:4px;flex-shrink:0">
+              <button class="item-edit-btn" data-ei="${i}" title="Edit item" style="width:28px;height:28px;border-radius:6px;border:0.5px solid var(--border);background:none;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;transition:all .15s">
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 1.5l2 2L4 11H2v-2l7.5-7.5z"/></svg>
+              </button>
+              <button class="item-del" data-di="${i}" style="width:28px;height:28px;border-radius:6px;border:0.5px solid var(--border);background:none;color:var(--muted);font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;transition:all .15s">×</button>
+            </div>`}
+      </div>`;
+    }).join("")}
+  </div>
+  ${S.editingItem!==null?renderEditModal():""}
+  <div class="add-item-row">
+    <input id="new-item" placeholder="Add missing item…">
+    <button class="btn btn-secondary btn-sm" id="btn-add">Add</button>
+  </div>
+  <div class="meta-row">
+    <div class="field" style="margin:0"><label>Description</label><input id="f-desc2" value="${esc(S.desc)}" placeholder="Box description"></div>
+    <div class="field" style="margin:0"><label>Destination</label><input id="f-dest2" value="${esc(S.dest)}"></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" id="btn-back2" style="flex:1">Back</button>
+    <button class="btn btn-primary" id="btn-confirm" style="flex:2">Confirm — save to sheet</button>
+  </div>`;
+}
+
+/* ── Step 3: Saving ── */
+function v3(){
+  return`
+  <div class="step-header"><div class="step-num">4</div><div class="step-title">Saving to Google Sheets…</div></div>
+  <div class="status-bar status-info">
+    <div style="width:18px;height:18px;border:2px solid #CECBF6;border-top-color:#534AB7;border-radius:50%;flex-shrink:0;margin-top:1px" class="spin"></div>
+    Writing ${S.boxId} to your sheet…
+  </div>`;
+}
+
+/* ── Step 4: Label ── */
+function v4(){
+  const t=TIER[S.tier];
+  const active=S.items.filter((_,i)=>!S.removed.includes(i));
+  const lines=chunkItems(active,65);
+  const isItem=S.mode==="item";
+  const totalVal=isItem?S.singleValue:active.reduce((s,_,i)=>s+(S.itemValues[i]||0),0);
+  return`
+  <div class="step-header"><div class="step-num">5</div><div class="step-title">Label — ${S.boxId}</div></div>
+  ${S.sheetResult==="ok"
+    ?`<div class="status-bar status-ok">
+        ${isItem?"Item":"Box"} ${S.boxId} saved · ${totalVal?`Est. value: <strong>$${totalVal.toLocaleString()}</strong>`:"no value set"}
+        ${S.driveFolderUrl?` · <a href="${S.driveFolderUrl}" target="_blank" style="color:var(--gd);font-weight:600">📷 Drive</a>`:""}
+        ${S.driveError?`<br><span style="font-size:11px;opacity:.8">Drive error: ${esc(S.driveError)}</span>`:""}
+      </div>`
+    :S.sheetResult==="skip"
+    ?`<div class="status-bar status-warn">Google Sheets not connected — sheet not updated. <a href="${SHEET_URL}" target="_blank" style="color:var(--ad);text-decoration:underline">Open sheet</a></div>`
+    :`<div class="status-bar status-err">Sheet write failed: ${esc(S.sheetResult)} — <a href="${SHEET_URL}" target="_blank" style="color:var(--rd);text-decoration:underline">open sheet</a> to add manually</div>`}
+  <div class="label-preview">
+    <div class="lp-stripe" style="background:${t.stripe}"></div>
+    <div class="lp-body">
+      <div class="lp-main">
+        <div>
+          <div class="lp-id">${S.boxId}</div>
+          <div class="lp-badge" style="background:${t.bb};color:${t.bt}">${t.lbl}</div>
+          <div class="lp-desc">${esc(S.desc)||"—"}</div>
+          ${isItem
+            ?`<div style="margin-top:6px;display:flex;gap:12px">
+                <div style="font-size:9px;color:#444"><span style="color:#888">Cat:</span> ${esc(S.singleCategory)}</div>
+                ${S.singleDimensions?`<div style="font-size:9px;color:#444"><span style="color:#888">Dim:</span> ${esc(S.singleDimensions)}</div>`:""}
+                ${totalVal?`<div style="font-size:9px;font-weight:700;color:#1D9E75">$${totalVal.toLocaleString()}</div>`:""}
+              </div>`
+            :`<div class="lp-items">${lines.map(l=>`<div>${esc(l)}</div>`).join("")}</div>`}
+        </div>
+        <div class="lp-bottom">
+          <div><div class="lp-dest">→ ${esc(S.dest)}</div>
+          <div class="lp-tag">Aachen · Jun 2026 · ${active.length} items${S.fragile?" · ⚠ fragile":""} · ${S.packedBy}</div></div>
+        </div>
+      </div>
+      <div class="lp-divider"></div>
+      <div class="lp-qr-side">
+        <canvas id="qr-cv" width="60" height="60"></canvas>
+        <div class="lp-qr-hint">Scan for<br>inventory</div>
+      </div>
+    </div>
+  </div>
+  <div style="background:var(--gl);border:0.5px solid #9FE1CB;border-radius:10px;padding:1rem;margin-bottom:1rem">
+    <div style="font-size:14px;font-weight:600;color:var(--gd);margin-bottom:10px">Print to Brother QL</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px">
+      <button class="btn btn-success" id="btn-print1">1 copy</button>
+      <button class="btn btn-success" id="btn-print2">2 copies</button>
+      <button class="btn btn-success" id="btn-print4">4 copies</button>
+    </div>
+    <div style="font-size:11px;color:var(--gd);text-align:center;opacity:.8">Tap to share PNG to Brother iPrint&amp;Label app</div>
+  </div>
+  <button class="btn btn-secondary" id="btn-dl" style="margin-bottom:8px">Download label HTML</button>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-secondary" id="btn-back-menu" style="flex:1">Menu</button>
+    <button class="btn btn-secondary" id="btn-next-box" style="flex:1">Pack next box</button>
+  </div>`;
+}
+
+/* ── Registry ── */
+function vreg(){
+  const rr=S.registry;if(!rr.length)return"";
+  const ca={A:0,B:0,C:0};rr.forEach(b=>ca[b.tier]++);
+  return`<div class="registry">
+  <div class="reg-header"><span>Registry (${rr.length})</span>
+    <div class="reg-counts"><span style="color:#0F6E56">A:${ca.A}</span><span style="color:#854F0B">B:${ca.B}</span><span style="color:#3C3489">C:${ca.C}</span></div>
+  </div>
+  ${[...rr].reverse().slice(0,8).map(b=>`<div class="reg-item">
+    <div class="reg-dot" style="background:${TIER[b.tier].dot}"></div>
+    <div class="reg-id">${b.id}</div>
+    <div class="reg-desc">${esc(b.desc)}</div>
+    <div class="reg-n" style="color:${b.mode==='item'?'var(--g)':'var(--faint)'}">${b.mode==='item'?'item':b.count}</div>
+  </div>`).join("")}
+  ${rr.length>8?`<div style="font-size:12px;color:#a0a0b8;text-align:center;padding:4px">+${rr.length-8} more</div>`:""}
+</div>`;}
+
+/* ── Event binding ── */
+function bind(){
+  // Menu navigation
+  q("#menu-pack")?.addEventListener("click",()=>{S.screen="pack";S.step=0;r();});
+  q("#menu-registry")?.addEventListener("click",()=>{S.screen="registry";r();});
+  q("#menu-docs")?.addEventListener("click",()=>{S.screen="documents";r();});
+  q("#back-menu")?.addEventListener("click",()=>{S.screen="menu";r();});
+  q("#back-registry")?.addEventListener("click",()=>{S.screen="registry";r();});
+  q("#btn-reprint-label")?.addEventListener("click",reprintFromDetail);
+  // Registry row clicks
+  qq("[data-box-id]").forEach(el => {
+    el.addEventListener("click", () => loadBoxDetail(el.dataset.boxId));
+  });
+  // Step 0
+  q("#btn-save-key")?.addEventListener("click",()=>{
+    const v=(q("#api-key-input")?.value||"").trim();
+    if(v.startsWith("sk-ant-")){saveApiKey(v);r();}
+    else toast("Key should start with sk-ant-");
+  });
+  q("#btn-clear-key")?.addEventListener("click",()=>{localStorage.removeItem("anthropic_key");r();});
+  q("#btn-mode-box")?.addEventListener("click",()=>{S.mode="box";r();});
+  q("#btn-mode-item")?.addEventListener("click",()=>{S.mode="item";r();});
+  q("#btn-next0")?.addEventListener("click",()=>{if(S.dest&&getApiKey()){S.step=1;r();}});
+  q("#f-dest")?.addEventListener("input",e=>{S.dest=e.target.value;const b=q("#btn-next0");if(b)b.disabled=!S.dest||!getApiKey();});
+  q("#f-desc")?.addEventListener("input",e=>S.desc=e.target.value);
+  q("#f-fragile")?.addEventListener("change",e=>S.fragile=e.target.checked);
+  q("#pb-marco")?.addEventListener("click",()=>{S.packedBy="Marco";r();});
+  q("#pb-geetha")?.addEventListener("click",()=>{S.packedBy="Geetha";r();});
+  ["A","B","C"].forEach(t=>q("#tb-"+t)?.addEventListener("click",()=>{S.tier=t;r();}));
+  q("#btn-google-auth")?.addEventListener("click",startGoogleAuth);
+  q("#btn-test-key")?.addEventListener("click",testApiKey);
+  // Step 1
+  q("#btn-back1")?.addEventListener("click",()=>{S.step=0;r();});
+  q("#btn-analyze")?.addEventListener("click",analyze);
+  q("#drop-zone")?.addEventListener("click",()=>q("#file-input").click());
+  q("#add-more")?.addEventListener("click",()=>q("#file-input").click());
+  q("#file-input")?.addEventListener("change",e=>handleFiles(e.target.files));
+  qq(".photo-del").forEach(b=>b.addEventListener("click",()=>{const i=+b.dataset.i;S.photos.splice(i,1);r();}));
+  const dz=q("#drop-zone");
+  if(dz){dz.addEventListener("dragover",e=>{e.preventDefault();dz.classList.add("drag");});dz.addEventListener("dragleave",()=>dz.classList.remove("drag"));dz.addEventListener("drop",e=>{e.preventDefault();dz.classList.remove("drag");handleFiles(e.dataTransfer.files);});}
+  // Step 2
+  q("#btn-back2")?.addEventListener("click",()=>{S.step=1;r();});
+  q("#btn-confirm")?.addEventListener("click",confirmBox);
+  q("#btn-add")?.addEventListener("click",addItem);
+  q("#new-item")?.addEventListener("keydown",e=>{if(e.key==="Enter")addItem();});
+  q("#f-desc2")?.addEventListener("input",e=>S.desc=e.target.value);
+  q("#f-dest2")?.addEventListener("input",e=>S.dest=e.target.value);
+  qq("[data-di]").forEach(b=>b.addEventListener("click",()=>{S.removed.push(+b.dataset.di);r();}));
+  qq("[data-ri]").forEach(b=>b.addEventListener("click",()=>{S.removed=S.removed.filter(x=>x!==+b.dataset.ri);r();}));
+  qq("[data-ci]").forEach(b=>b.addEventListener("click",()=>{S.clarifyIdx=+b.dataset.ci+1;r();}));
+  // data-idx bindings removed — editing now only through pencil modal
+  qq(".item-edit-btn").forEach(b=>b.addEventListener("click",()=>openEdit(+b.dataset.ei)));
+  // Step 4
+  q("#btn-dl")?.addEventListener("click",downloadLabel);
+  q("#btn-print1")?.addEventListener("click",()=>printLabel(1));
+  q("#btn-print2")?.addEventListener("click",()=>printLabel(2));
+  q("#btn-print4")?.addEventListener("click",()=>printLabel(4));
+  q("#btn-next-box")?.addEventListener("click",nextBox);
+  q("#btn-back-menu")?.addEventListener("click",()=>{
+    if(S.detailBox && S.detailBox.id === S.boxId){
+      // Came from reprint — go back to detail view
+      loadBoxDetail(S.detailBox.id);
+    } else {
+      S.screen="menu";S.step=0;r();
+    }
+  });
+  if(S.step===4)setTimeout(drawQR,50);
+}
+
+/* ── Google OAuth ── */
+function startGoogleAuth(){
+  if(!window.google){toast("Google Sign-In library not loaded yet — try again in a moment");return;}
+  const client=google.accounts.oauth2.initTokenClient({
+    client_id:GOOGLE_CLIENT_ID,
+    scope:SCOPES,
+    prompt:"consent",
+    callback:(resp)=>{
+      if(resp.error){toast("Google auth failed: "+resp.error);return;}
+      googleToken=resp.access_token;
+      fetchGoogleUserInfo();
+    }
+  });
+  client.requestAccessToken({prompt:"consent"});
+}
+
+async function fetchGoogleUserInfo(){
+  try{
+    const resp=await fetch("https://www.googleapis.com/oauth2/v3/userinfo",{headers:{Authorization:"Bearer "+googleToken}});
+    const data=await resp.json();
+    googleUser=data.email||data.name||"connected";
+    toast("Google Sheets connected");
+    r();
+  }catch(e){googleUser="connected";r();}
+}
+
+/* ── Write to Google Sheets ── */
+async function writeToSheet(){
+  if(!googleToken){S.sheetResult="skip";S.step=4;r();setTimeout(drawQR,50);return;}
+  const active=S.items.filter((_,i)=>!S.removed.includes(i));
+  const today=new Date().toLocaleDateString("en-GB");
+  try{
+    // Upload photos to Drive first so we have the folder URL for the sheet
+    let driveFolderUrl = "";
+    let driveFolderId = "";
+    if(S.photos.length > 0){
+      try{
+        const folderId = await getOrCreateFolder(S.boxId);
+        driveFolderId = folderId;
+        driveFolderUrl = "https://drive.google.com/drive/folders/" + folderId;
+        S.driveFolderUrl = driveFolderUrl;
+        await uploadPhotosToDrive(folderId);
+      }catch(de){console.warn("Drive upload failed:",de.message);S.driveError=de.message;}
+    }
+    // Ensure headers exist on first write
+    await ensureHeaders();
+    // Get current row counts so we know where new data lands
+    const regInfo = await getSheetInfo(REGISTRY_SHEET);
+    const itemInfo = await getSheetInfo(ITEMS_SHEET);
+    const regStartRow = regInfo.rowCount + 1;
+    const itemStartRow = itemInfo.rowCount + 1;
+    // Append data — include Drive folder URL in registry row
+    const t = TIER[S.tier];
+    const photosCell = driveFolderUrl ? `=HYPERLINK("${driveFolderUrl}","📷 View photos")` : "";
+    const regRow=[[S.boxId, S.tier, t.lbl.split(" · ")[1]||S.tier, S.desc, S.dest, active.length, S.fragile?"Yes":"No", today, SHEET_URL+"&box="+encodeURIComponent(S.boxId), photosCell]];
+    await sheetsAppend(REGISTRY_SHEET, regRow);
+    const itemRows=active.map((item,i)=>[S.boxId, i+1, S.itemCategories?.[i]||getCategory(item), item, 1, ""]);
+    if(itemRows.length) await sheetsAppend(ITEMS_SHEET, itemRows);
+    // Format the new rows (non-fatal if fails)
+    try{
+      const regSheetId = await getSheetId(REGISTRY_SHEET);
+      const itemSheetId = await getSheetId(ITEMS_SHEET);
+      await formatNewRows(regSheetId, regStartRow-1, S.tier, false);
+      if(itemRows.length) await formatNewRows(itemSheetId, itemStartRow-1, S.tier, true);
+    }catch(fe){console.warn("Formatting failed (data still saved):",fe.message);}
+    S.sheetResult="ok";
+  }catch(e){
+    S.sheetResult=e.message||"unknown error";
+  }
+  S.step=4;r();setTimeout(drawQR,50);
+}
+
+async function getSheetInfo(sheetName){
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/'${sheetName}'!A:A`;
+  const resp=await fetch(url,{headers:{"Authorization":"Bearer "+googleToken}});
+  if(!resp.ok) return {rowCount:1};
+  const data=await resp.json();
+  return {rowCount:(data.values||[]).length};
+}
+
+async function getSheetId(sheetName){
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties`;
+  const resp=await fetch(url,{headers:{"Authorization":"Bearer "+googleToken}});
+  const data=await resp.json();
+  const found=(data.sheets||[]).find(s=>s.properties.title===sheetName);
+  return found?found.properties.sheetId:0;
+}
+
+async function ensureHeaders(){
+  // Check if Box Registry has headers
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/'${REGISTRY_SHEET}'!A1:A2`;
+  const resp=await fetch(url,{headers:{"Authorization":"Bearer "+googleToken}});
+  const data=await resp.json();
+  // Check if either row 1 or row 2 has "Box ID" (handles both with and without title row)
+  const vals=data.values||[];
+  const hasHeader=vals.some(row=>row[0]==="Box ID");
+  if(hasHeader) return;
+  // Write headers to both sheets
+  const regHeaders=[["Box ID","Tier","Tier Name","Description","Destination","# Items","Fragile?","Packed By","Date Packed","Est. Value (USD)","Inventory QR URL","Photos (Drive)"]];
+  const itemHeaders=[["Box ID","Item #","Category","Item Description","Qty","Est. Value (USD)","Value Source","Notes"]];
+  await sheetsUpdate(REGISTRY_SHEET,"A1",regHeaders);
+  await sheetsUpdate(ITEMS_SHEET,"A1",itemHeaders);
+  // Format header rows
+  const regId=await getSheetId(REGISTRY_SHEET);
+  const itemId=await getSheetId(ITEMS_SHEET);
+  await formatHeaderRow(regId,12);
+  await formatHeaderRow(itemId,8);
+  // Check/create Item Registry
+  const irCheck=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/'${ITEM_REGISTRY_SHEET}'!A1`,
+    {headers:{"Authorization":"Bearer "+googleToken}});
+  const irData=await irCheck.json();
+  const irHasHeader=(irData.values||[]).some(r=>r[0]==="Item ID");
+  if(!irHasHeader){
+    const irHeaders=[["Item ID","Tier","Tier Name","Category","Description","Destination","Dimensions","Fragile?","Est. Value (USD)","Value Source","Packed By","Date Packed","Photos (Drive)","Notes"]];
+    await sheetsUpdate(ITEM_REGISTRY_SHEET,"A1",irHeaders);
+    const irId=await getSheetId(ITEM_REGISTRY_SHEET);
+    await formatHeaderRow(irId,14);
+    await batchUpdate([
+      {updateDimensionProperties:{range:{sheetId:irId,dimension:"COLUMNS",startIndex:0,endIndex:1},properties:{pixelSize:70},fields:"pixelSize"}},
+      {updateDimensionProperties:{range:{sheetId:irId,dimension:"COLUMNS",startIndex:1,endIndex:2},properties:{pixelSize:55},fields:"pixelSize"}},
+      {updateDimensionProperties:{range:{sheetId:irId,dimension:"COLUMNS",startIndex:2,endIndex:3},properties:{pixelSize:120},fields:"pixelSize"}},
+      {updateDimensionProperties:{range:{sheetId:irId,dimension:"COLUMNS",startIndex:3,endIndex:4},properties:{pixelSize:120},fields:"pixelSize"}},
+      {updateDimensionProperties:{range:{sheetId:irId,dimension:"COLUMNS",startIndex:4,endIndex:5},properties:{pixelSize:220},fields:"pixelSize"}},
+      {updateDimensionProperties:{range:{sheetId:irId,dimension:"COLUMNS",startIndex:5,endIndex:6},properties:{pixelSize:140},fields:"pixelSize"}},
+      {updateDimensionProperties:{range:{sheetId:irId,dimension:"COLUMNS",startIndex:6,endIndex:7},properties:{pixelSize:140},fields:"pixelSize"}},
+      {updateDimensionProperties:{range:{sheetId:irId,dimension:"COLUMNS",startIndex:7,endIndex:8},properties:{pixelSize:70},fields:"pixelSize"}},
+      {updateDimensionProperties:{range:{sheetId:irId,dimension:"COLUMNS",startIndex:8,endIndex:9},properties:{pixelSize:110},fields:"pixelSize"}},
+      {updateDimensionProperties:{range:{sheetId:irId,dimension:"COLUMNS",startIndex:9,endIndex:10},properties:{pixelSize:100},fields:"pixelSize"}},
+      {updateDimensionProperties:{range:{sheetId:irId,dimension:"COLUMNS",startIndex:10,endIndex:11},properties:{pixelSize:200},fields:"pixelSize"}},
+      {updateDimensionProperties:{range:{sheetId:irId,dimension:"COLUMNS",startIndex:11,endIndex:12},properties:{pixelSize:200},fields:"pixelSize"}},
+    ]);
+  }
+  // Set column widths for Box Registry
+  await batchUpdate([
+    {updateDimensionProperties:{range:{sheetId:regId,dimension:"COLUMNS",startIndex:0,endIndex:1},properties:{pixelSize:70},fields:"pixelSize"}},
+    {updateDimensionProperties:{range:{sheetId:regId,dimension:"COLUMNS",startIndex:1,endIndex:2},properties:{pixelSize:55},fields:"pixelSize"}},
+    {updateDimensionProperties:{range:{sheetId:regId,dimension:"COLUMNS",startIndex:2,endIndex:3},properties:{pixelSize:130},fields:"pixelSize"}},
+    {updateDimensionProperties:{range:{sheetId:regId,dimension:"COLUMNS",startIndex:3,endIndex:4},properties:{pixelSize:240},fields:"pixelSize"}},
+    {updateDimensionProperties:{range:{sheetId:regId,dimension:"COLUMNS",startIndex:4,endIndex:5},properties:{pixelSize:150},fields:"pixelSize"}},
+    {updateDimensionProperties:{range:{sheetId:regId,dimension:"COLUMNS",startIndex:5,endIndex:6},properties:{pixelSize:60},fields:"pixelSize"}},
+    {updateDimensionProperties:{range:{sheetId:regId,dimension:"COLUMNS",startIndex:6,endIndex:7},properties:{pixelSize:70},fields:"pixelSize"}},
+    {updateDimensionProperties:{range:{sheetId:regId,dimension:"COLUMNS",startIndex:7,endIndex:8},properties:{pixelSize:100},fields:"pixelSize"}},
+    {updateDimensionProperties:{range:{sheetId:regId,dimension:"COLUMNS",startIndex:8,endIndex:9},properties:{pixelSize:110},fields:"pixelSize"}},
+    {updateDimensionProperties:{range:{sheetId:regId,dimension:"COLUMNS",startIndex:9,endIndex:10},properties:{pixelSize:260},fields:"pixelSize"}},
+    {updateDimensionProperties:{range:{sheetId:regId,dimension:"COLUMNS",startIndex:10,endIndex:11},properties:{pixelSize:200},fields:"pixelSize"}},
+    // Item Detail columns
+    {updateDimensionProperties:{range:{sheetId:itemId,dimension:"COLUMNS",startIndex:0,endIndex:1},properties:{pixelSize:70},fields:"pixelSize"}},
+    {updateDimensionProperties:{range:{sheetId:itemId,dimension:"COLUMNS",startIndex:1,endIndex:2},properties:{pixelSize:55},fields:"pixelSize"}},
+    {updateDimensionProperties:{range:{sheetId:itemId,dimension:"COLUMNS",startIndex:2,endIndex:3},properties:{pixelSize:130},fields:"pixelSize"}},
+    {updateDimensionProperties:{range:{sheetId:itemId,dimension:"COLUMNS",startIndex:3,endIndex:4},properties:{pixelSize:340},fields:"pixelSize"}},
+    {updateDimensionProperties:{range:{sheetId:itemId,dimension:"COLUMNS",startIndex:4,endIndex:5},properties:{pixelSize:50},fields:"pixelSize"}},
+    {updateDimensionProperties:{range:{sheetId:itemId,dimension:"COLUMNS",startIndex:5,endIndex:6},properties:{pixelSize:100},fields:"pixelSize"}},
+    {updateDimensionProperties:{range:{sheetId:itemId,dimension:"COLUMNS",startIndex:6,endIndex:7},properties:{pixelSize:200},fields:"pixelSize"}},
+  ]);
+}
+
+async function sheetsUpdate(sheetName,range,values){
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/'${sheetName}'!${range}?valueInputOption=USER_ENTERED`;
+  const resp=await fetch(url,{method:"PUT",headers:{"Authorization":"Bearer "+googleToken,"Content-Type":"application/json"},body:JSON.stringify({values})});
+  if(!resp.ok){const e=await resp.text();throw new Error(resp.status+": "+e.slice(0,200));}
+  return resp.json();
+}
+
+async function formatHeaderRow(sheetId, numCols){
+  // Row index 1 = second row (0-indexed) because row 0 is the title row
+  const requests=[{
+    repeatCell:{
+      range:{sheetId,startRowIndex:1,endRowIndex:2,startColumnIndex:0,endColumnIndex:numCols},
+      cell:{userEnteredFormat:{
+        backgroundColor:{red:0.118,green:0.118,blue:0.180},
+        textFormat:{bold:true,fontSize:10,foregroundColor:{red:1.0,green:1.0,blue:1.0}},
+        horizontalAlignment:"CENTER",
+        verticalAlignment:"MIDDLE",
+        wrapStrategy:"CLIP"
+      }},
+      fields:"userEnteredFormat(backgroundColor,textFormat,horizontalAlignment,verticalAlignment,wrapStrategy)"
+    }
+  },{
+    updateDimensionProperties:{
+      range:{sheetId,dimension:"ROWS",startIndex:1,endIndex:2},
+      properties:{pixelSize:28},
+      fields:"pixelSize"
+    }
+  }];
+  await batchUpdate(requests);
+}
+
+const TIER_COLORS={
+  A:{r:0.882,g:0.961,b:0.933},
+  B:{r:0.980,g:0.933,b:0.855},
+  C:{r:0.933,g:0.929,b:0.996},
+};
+const TIER_TEXT_COLORS={
+  A:{r:0.059,g:0.431,b:0.337},
+  B:{r:0.522,g:0.310,b:0.043},
+  C:{r:0.235,g:0.204,b:0.549},
+};
+
+async function formatNewRows(sheetId, startRowIndex, tier, isItemSheet){
+  const bg = TIER_COLORS[tier] || TIER_COLORS.C;
+  const tc = TIER_TEXT_COLORS[tier] || TIER_TEXT_COLORS.C;
+  const numCols = isItemSheet ? 6 : 10;
+  const requests = [
+    // Row background + base formatting
+    {repeatCell:{
+      range:{sheetId,startRowIndex,endRowIndex:startRowIndex+1,startColumnIndex:0,endColumnIndex:numCols},
+      cell:{userEnteredFormat:{
+        backgroundColor:{red:bg.r,green:bg.g,blue:bg.b},
+        verticalAlignment:"MIDDLE",
+        wrapStrategy:"WRAP",
+        textFormat:{fontSize:10,foregroundColor:{red:0.1,green:0.1,blue:0.1}}
+      }},
+      fields:"userEnteredFormat(backgroundColor,verticalAlignment,wrapStrategy,textFormat)"
+    }},
+    // Box ID cell — bold monospace in tier color
+    {repeatCell:{
+      range:{sheetId,startRowIndex,endRowIndex:startRowIndex+1,startColumnIndex:0,endColumnIndex:1},
+      cell:{userEnteredFormat:{
+        textFormat:{bold:true,fontSize:11,fontFamily:"Courier New",foregroundColor:{red:tc.r,green:tc.g,blue:tc.b}},
+        horizontalAlignment:"CENTER"
+      }},
+      fields:"userEnteredFormat(textFormat,horizontalAlignment)"
+    }},
+    // Tier cell — bold in tier color, centered
+    {repeatCell:{
+      range:{sheetId,startRowIndex,endRowIndex:startRowIndex+1,startColumnIndex:1,endColumnIndex:2},
+      cell:{userEnteredFormat:{
+        textFormat:{bold:true,foregroundColor:{red:tc.r,green:tc.g,blue:tc.b}},
+        horizontalAlignment:"CENTER"
+      }},
+      fields:"userEnteredFormat(textFormat,horizontalAlignment)"
+    }},
+    // Item # cell on item sheet — bold in tier color, centered
+    ...(isItemSheet ? [{repeatCell:{
+      range:{sheetId,startRowIndex,endRowIndex:startRowIndex+1,startColumnIndex:1,endColumnIndex:2},
+      cell:{userEnteredFormat:{
+        textFormat:{bold:true,foregroundColor:{red:tc.r,green:tc.g,blue:tc.b}},
+        horizontalAlignment:"CENTER"
+      }},
+      fields:"userEnteredFormat(textFormat,horizontalAlignment)"
+    }}] : []),
+    // Row height
+    {updateDimensionProperties:{
+      range:{sheetId,dimension:"ROWS",startIndex:startRowIndex,endIndex:startRowIndex+1},
+      properties:{pixelSize:isItemSheet?20:48},
+      fields:"pixelSize"
+    }}
+  ];
+  await batchUpdate(requests);
+}
+
+/* ── Google Drive helpers ── */
+async function getOrCreateFolder(boxId){
+  // Find or create root "Aachen Move" folder
+  const rootId = await findOrMakeFolder(ROOT_FOLDER_NAME, "root");
+  // Find or create box subfolder inside it
+  const boxFolderId = await findOrMakeFolder(boxId, rootId);
+  return boxFolderId;
+}
+
+async function findOrMakeFolder(name, parentId){
+  // Search for existing folder
+  const q = encodeURIComponent(`name='${name}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`);
+  const resp = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`,{
+    headers:{"Authorization":"Bearer "+googleToken}
+  });
+  if(!resp.ok){const e=await resp.text();throw new Error("Drive search "+resp.status+": "+e.slice(0,150));}
+  const data = await resp.json();
+  if(data.files && data.files.length > 0) return data.files[0].id;
+  // Create it
+  const createResp = await fetch("https://www.googleapis.com/drive/v3/files",{
+    method:"POST",
+    headers:{"Authorization":"Bearer "+googleToken,"Content-Type":"application/json"},
+    body:JSON.stringify({
+      name, mimeType:"application/vnd.google-apps.folder",
+      parents:[parentId]
+    })
+  });
+  if(!createResp.ok){const e=await createResp.text();throw new Error("Drive mkdir "+createResp.status+": "+e.slice(0,150));}
+  const created = await createResp.json();
+  return created.id;
+}
+
+async function uploadPhotosToDrive(folderId){
+  for(let i=0;i<S.photos.length;i++){
+    const dataUrl = S.photos[i];
+    const [meta, b64] = dataUrl.split(",");
+    const mimeType = meta.match(/:(.*?);/)[1];
+    const ext = mimeType.includes("png") ? "png" : "jpg";
+    const filename = `${S.boxId}_photo${i+1}.${ext}`;
+    // Convert base64 to blob
+    const byteStr = atob(b64);
+    const arr = new Uint8Array(byteStr.length);
+    for(let j=0;j<byteStr.length;j++) arr[j]=byteStr.charCodeAt(j);
+    const blob = new Blob([arr],{type:mimeType});
+    // Multipart upload
+    const boundary = "bound" + Date.now();
+    const metaPart = JSON.stringify({name:filename,parents:[folderId]});
+    const formData = new FormData();
+    formData.append("metadata", new Blob([metaPart],{type:"application/json"}));
+    formData.append("file", blob, filename);
+    const uploadResp = await fetch(
+      "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name",{
+        method:"POST",
+        headers:{"Authorization":"Bearer "+googleToken},
+        body:formData
+      }
+    );
+    if(!uploadResp.ok){const e=await uploadResp.text();console.warn("Photo upload failed:",e.slice(0,100));}
+  }
+}
+
+async function batchUpdate(requests){
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`;
+  const resp=await fetch(url,{
+    method:"POST",
+    headers:{"Authorization":"Bearer "+googleToken,"Content-Type":"application/json"},
+    body:JSON.stringify({requests})
+  });
+  if(!resp.ok){const e=await resp.text();throw new Error("Format error "+resp.status+": "+e.slice(0,200));}
+  return resp.json();
+}
+
+async function sheetsAppend(sheetName,values){
+  // First verify we can read the spreadsheet at all
+  const checkUrl=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties`;
+  const check=await fetch(checkUrl,{headers:{"Authorization":"Bearer "+googleToken}});
+  if(!check.ok){
+    const e=await check.text();
+    throw new Error("Cannot access spreadsheet ("+check.status+"): "+e.slice(0,200));
+  }
+  const meta=await check.json();
+  // Find the sheet tab by name
+  const sheets=meta.sheets||[];
+  const found=sheets.find(s=>s.properties.title===sheetName);
+  if(!found){
+    const names=sheets.map(s=>s.properties.title).join(", ");
+    throw new Error(`Tab "${sheetName}" not found. Tabs in this sheet: ${names}`);
+  }
+  // Append using the confirmed tab name
+  const range=`'${sheetName}'!A1`;
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+  const resp=await fetch(url,{
+    method:"POST",
+    headers:{"Authorization":"Bearer "+googleToken,"Content-Type":"application/json"},
+    body:JSON.stringify({values})
+  });
+  if(!resp.ok){const e=await resp.text();throw new Error(resp.status+": "+e.slice(0,300));}
+  return resp.json();
+}
+
+function getCategory(item){
+  const i=item.toLowerCase();
+  if(i.includes("book")||i.includes("novel")||i.includes("guide")||["harry","speed secrets","perfect corner","rya","fodor"].some(k=>i.includes(k)))return"Books";
+  if(i.includes("kart")||i.includes("helmet")||i.includes("glove")||i.includes("rib")||i.includes("engine")||i.includes("tool"))return"Karting";
+  if(i.includes("cloth")||i.includes("shirt")||i.includes("jacket")||i.includes("shoe")||i.includes("boot")||i.includes("dress"))return"Clothing";
+  if(i.includes("yeti")||i.includes("mug")||i.includes("cup")||i.includes("plate")||i.includes("bowl")||i.includes("kitchen"))return"Kitchen";
+  if(i.includes("plush")||i.includes("toy")||i.includes("game")||i.includes("lego"))return"Kids / Toys";
+  return"Household";
+}
+
+/* ── File handling ── */
+function handleFiles(files){
+  const slots=4-S.photos.length;
+  Array.from(files).slice(0,slots).forEach(file=>{
+    compressImage(file,1200,0.82).then(dataUrl=>{S.photos.push(dataUrl);r();});
+  });
+}
+
+function compressImage(file,maxPx,quality){
+  return new Promise(resolve=>{
+    const rd=new FileReader();
+    rd.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        let w=img.width,h=img.height;
+        if(w>maxPx||h>maxPx){
+          if(w>h){h=Math.round(h*maxPx/w);w=maxPx;}
+          else{w=Math.round(w*maxPx/h);h=maxPx;}
+        }
+        const cv=document.createElement("canvas");
+        cv.width=w;cv.height=h;
+        cv.getContext("2d").drawImage(img,0,0,w,h);
+        resolve(cv.toDataURL("image/jpeg",quality));
+      };
+      img.src=e.target.result;
+    };
+    rd.readAsDataURL(file);
+  });
+}
+
+/* ── Test API key ── */
+async function testApiKey(){
+  const apiKey=getApiKey();
+  if(!apiKey){toast("No API key saved");return;}
+  toast("Testing connection…");
+  try{
+    const resp=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "x-api-key":apiKey,
+        "anthropic-version":"2023-06-01",
+        "anthropic-dangerous-direct-browser-access":"true",
+      },
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:10,
+        messages:[{role:"user",content:"Hi"}]
+      })
+    });
+    if(resp.ok){toast("API key works!");}
+    else{const e=await resp.text();toast("Error "+resp.status+": "+e.slice(0,80));}
+  }catch(e){
+    toast("Failed to fetch — "+e.message);
+  }
+}
+
+/* ── Analyze photos ── */
+async function analyze(){
+  S.step=2;S.items=[];S.removed=[];S.clarifications=[];S.clarifyIdx=0;
+  root.innerHTML=nav()+`
+  <div class="step-header"><div class="step-num">3</div><div class="step-title">Analyzing photos…</div></div>
+  <div style="text-align:center;padding:3rem 1rem;color:var(--muted)">
+    <div style="width:36px;height:36px;border:3px solid #CECBF6;border-top-color:#534AB7;border-radius:50%;margin:0 auto 1rem;animation:spin .7s linear infinite"></div>
+    Analyzing ${S.photos.length} photo${S.photos.length>1?"s":""}…<br>
+    <span style="font-size:12px;margin-top:6px;display:block">Usually takes 10–20 seconds</span>
+  </div>`;
+  try{
+    const imgContent=S.photos.map(url=>{
+      const [meta,data]=url.split(",");
+      const mt=meta.match(/:(.*?);/)[1];
+      return{type:"image",source:{type:"base64",media_type:mt,data}};
+    });
+    const apiKey=getApiKey();
+    if(!apiKey){throw new Error("No API key saved — go back to step 1 and enter your key");}
+    const resp=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "x-api-key":apiKey,
+        "anthropic-version":"2023-06-01",
+        "anthropic-dangerous-direct-browser-access":"true",
+      },
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:2500,
+        system: S.mode==="item"
+          ? `You are a moving inventory assistant. Analyze photos of a single item (furniture, appliance, or bulky object).
+Return ONLY a valid JSON object with these exact keys:
+- "desc": precise item description including brand, model, color, material if visible (e.g. "IKEA KALLAX 4x4 shelf unit, white")
+- "category": one of: Furniture, Appliance, Electronics, Clothing, Karting, Books, Kids / Toys, Art / Decor, Tools, Other
+- "value": estimated USD replacement value as a number (e.g. 150)
+- "valueSource": string explaining how value was estimated, e.g. "Current IKEA retail price", "Average used furniture market value", "Estimated based on brand and condition".
+- "dimensions": estimated dimensions as string if determinable, else ""
+- "fragile": boolean
+- "clarifications": array of up to 2 objects with "question" and "options" array for anything uncertain
+No markdown, no explanation, only the JSON object.`
+          : `You are a moving box inventory assistant creating an insurance-grade item list. Analyze photos of box contents carefully.
+
+CRITICAL RULES:
+- List EVERY SINGLE visible item as its own entry. Never group items together.
+- WRONG: "Various paperback novels and books" or "Assorted kitchen utensils"
+- RIGHT: "The Great Gatsby — F. Scott Fitzgerald (paperback)", "1984 — George Orwell (paperback)", "Wooden spatula", "Metal whisk"
+- For books: list each book individually with title and author if readable on the spine/cover. If you can read partial titles, include what you can see. If a stack of books is partially obscured, list the ones you can identify and add numbered placeholders like "Unidentified paperback #1", "Unidentified paperback #2" for the rest.
+- For groups of similar small items (e.g. pens, utensils), still list them individually or use counts like "Ballpoint pen (blue)", "Ballpoint pen (black)".
+- This list is for insurance documentation — every individual item matters.
+
+Return ONLY a valid JSON object with these exact keys:
+- "items": array of individual item name strings. Be precise: include brand names if visible, full book titles and authors if readable. One string per physical item.
+- "values": array of estimated USD replacement values (numbers), one per item in same order as items array.
+- "valueSources": array of strings explaining how each value was estimated — e.g. "Current Amazon price for comparable item", "Brand new retail price", "Estimated used/depreciated value", "Default category estimate". One per item matching values array.
+- "desc": short 4-8 word description of the box contents
+- "clarifications": array of up to 2 objects with "question" (string) and "options" (array of 3-4 short strings), for anything genuinely uncertain
+- "fragile": boolean
+No markdown, no explanation, only the JSON object.`,
+        messages:[{role:"user",content:[
+          ...imgContent,
+          {type:"text",text:S.mode==="item"
+            ? `Identify this single item. ${S.desc?"Context: "+S.desc:""}. Estimate its current USD replacement value carefully.`
+            : `Analyze these ${S.photos.length} photo(s). Destination: ${S.dest}${S.desc?" | Context: "+S.desc:""}. List every single visible item individually — do not group or summarize similar items. Estimate USD replacement value for each.`}
+        ]}]
+      })
+    });
+    if(!resp.ok){const e=await resp.text();throw new Error(`API ${resp.status}: ${e.slice(0,200)}`);}
+    const data=await resp.json();
+    const raw=data.content[0].text.trim().replace(/^```json|^```|```$/gm,"").trim();
+    const parsed=JSON.parse(raw);
+    if(S.mode==="item"){
+      if(parsed.desc&&!S.desc)S.desc=parsed.desc;
+      if(parsed.category)S.singleCategory=parsed.category;
+      if(parsed.value){S.singleValue=parsed.value;S.singleValueSource=parsed.valueSource||"AI estimate — based on visible brand/condition";}
+      if(parsed.dimensions)S.singleDimensions=parsed.dimensions;
+      if(parsed.fragile)S.fragile=true;
+      S.clarifications=parsed.clarifications||[];
+    } else {
+      S.items=parsed.items||[];
+      S.clarifications=parsed.clarifications||[];
+      if(parsed.values){parsed.values.forEach((v,i)=>{
+        if(v){S.itemValues[i]=v;S.itemValueSources[i]="AI estimate — based on visible brand/condition";}
+      });}
+      if(parsed.valueSources){parsed.valueSources.forEach((src,i)=>{if(src)S.itemValueSources[i]=src;});}
+      if(parsed.desc&&!S.desc)S.desc=parsed.desc;
+      if(parsed.fragile)S.fragile=true;
+    }
+  }catch(err){
+    const errMsg = err.message||String(err);
+    let hint="";
+    if(errMsg.includes("Failed to fetch")||errMsg.includes("NetworkError")||errMsg.includes("Load failed")){
+      hint="Network error — check your internet connection. If on GitHub Pages, make sure the URL starts with https://.";
+    } else if(errMsg.includes("401")||errMsg.includes("authentication")){
+      hint="API key rejected — go back to step 1 and re-enter your key.";
+    } else if(errMsg.includes("No API key")){
+      hint="";
+    }
+    S.items=[];
+    root.innerHTML=nav()+`
+    <div class="step-header"><div class="step-num">3</div><div class="step-title">Analysis failed</div></div>
+    <div class="status-bar status-err">Could not analyze photos — add items manually below.</div>
+    <div class="err-detail">${esc(errMsg)}${hint?"\n\nHint: "+esc(hint):""}</div>
+    <div class="item-list"></div>
+    <div class="add-item-row"><input id="new-item" placeholder="Add item manually…"><button class="btn btn-secondary btn-sm" id="btn-add">Add</button></div>
+    <div class="meta-row">
+      <div class="field" style="margin:0"><label>Description</label><input id="f-desc2" value="${esc(S.desc)}" placeholder="Box description"></div>
+      <div class="field" style="margin:0"><label>Destination</label><input id="f-dest2" value="${esc(S.dest)}"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="btn-back2" style="flex:1">Back</button>
+      <button class="btn btn-primary" id="btn-confirm" style="flex:2">Confirm box</button>
+    </div>`+vreg();
+    bind();updateTopStats();return;
+  }
+  r();
+}
+
+/* ── Supabase: get next available code ── */
+const MOVE_ID = "f3ec17dd-437a-4e60-bbe5-58d1ce340ed9"; // Chicago → Aachen 2026
+
+async function getNextBoxCode(tier){
+  // Ask the database: what box codes exist for this tier in this move?
+  const {data, error} = await sb
+    .from("boxes")
+    .select("box_code")
+    .eq("move_id", MOVE_ID)
+    .like("box_code", tier + "-%");
+
+  if(error){ console.error("Supabase error:", error); return tier + "-01"; }
+
+  // Find the highest number (e.g. if A-01, A-02, A-05 exist → highest is 5)
+  let max = 0;
+  (data||[]).forEach(row => {
+    const num = parseInt(row.box_code.split("-")[1], 10);
+    if(num > max) max = num;
+  });
+  return tier + "-" + String(max + 1).padStart(2, "0");
+}
+
+async function getNextItemCode(){
+  const {data, error} = await sb
+    .from("standalone_items")
+    .select("item_code")
+    .eq("move_id", MOVE_ID);
+
+  if(error){ console.error("Supabase error:", error); return "I-01"; }
+
+  let max = 0;
+  (data||[]).forEach(row => {
+    const num = parseInt(row.item_code.split("-")[1], 10);
+    if(num > max) max = num;
+  });
+  return "I-" + String(max + 1).padStart(2, "0");
+}
+
+/* ── Supabase: save box + items to database ── */
+async function saveBoxToSupabase(){
+  const active = S.items.filter((_,i) => !S.removed.includes(i));
+  const totalCents = active.reduce((sum, _, i) => {
+    const origIdx = S.items.indexOf(active[i] === active[i] ? S.items.filter((_,j)=>!S.removed.includes(j))[i] : active[i]);
+    return sum + Math.round((S.itemValues?.[origIdx] || 0) * 100);
+  }, 0);
+
+  if(S.mode === "item"){
+    // Save standalone item
+    const {error} = await sb.from("standalone_items").insert({
+      move_id: MOVE_ID,
+      item_code: S.boxId,
+      tier: S.tier,
+      category: S.singleCategory || "Household",
+      description: S.desc || S.items[0] || "Standalone item",
+      destination_room: S.dest,
+      dimensions: S.singleDimensions || null,
+      is_fragile: S.fragile,
+      packed_by: S.packedBy,
+      est_value_cents: Math.round((S.singleValue || 0) * 100),
+      value_source: S.singleValueSource || null,
+      value_source_type: S.singleValueSource ? "ai_estimate" : "not_set",
+    });
+    if(error) console.error("Supabase standalone_items error:", error);
+  } else {
+    // Save box
+    const {data: boxData, error: boxErr} = await sb.from("boxes").insert({
+      move_id: MOVE_ID,
+      box_code: S.boxId,
+      tier: S.tier,
+      description: S.desc,
+      destination_room: S.dest,
+      is_fragile: S.fragile,
+      packed_by: S.packedBy,
+      est_value_cents: totalCents,
+      item_count: active.length,
+    }).select("id").single();
+
+    if(boxErr){ console.error("Supabase box error:", boxErr); return; }
+
+    // Save each item inside the box
+    const itemRows = active.map((item, i) => ({
+      box_id: boxData.id,
+      move_id: MOVE_ID,
+      item_number: i + 1,
+      category: S.itemCategories?.[S.items.indexOf(item)] || "Other",
+      description: item,
+      quantity: 1,
+      est_value_cents: Math.round((S.itemValues?.[S.items.indexOf(item)] || 0) * 100),
+      value_source: S.itemValueSources?.[S.items.indexOf(item)] || null,
+      value_source_type: S.itemValueSources?.[S.items.indexOf(item)] ? "ai_estimate" : "not_set",
+    }));
+
+    if(itemRows.length > 0){
+      const {error: itemErr} = await sb.from("box_items").insert(itemRows);
+      if(itemErr) console.error("Supabase box_items error:", itemErr);
+    }
+  }
+}
+
+/* ── Supabase: load existing boxes + items into registry on startup ── */
+async function loadRegistryFromSupabase(){
+  try {
+    // Load all boxes for this move
+    const {data: boxes, error: boxErr} = await sb
+      .from("boxes")
+      .select("box_code, tier, description, destination_room, item_count")
+      .eq("move_id", MOVE_ID)
+      .order("created_at", {ascending: true});
+
+    if(boxErr){ console.error("Failed to load boxes:", boxErr); return; }
+
+    // Load all standalone items for this move
+    const {data: items, error: itemErr} = await sb
+      .from("standalone_items")
+      .select("item_code, tier, description, destination_room")
+      .eq("move_id", MOVE_ID)
+      .order("created_at", {ascending: true});
+
+    if(itemErr){ console.error("Failed to load items:", itemErr); return; }
+
+    // Build the registry array from database results
+    S.registry = [];
+    (boxes || []).forEach(b => {
+      S.registry.push({
+        id: b.box_code,
+        tier: b.tier,
+        desc: b.description || "",
+        dest: b.destination_room || "",
+        count: b.item_count || 0,
+        mode: "box"
+      });
+    });
+    (items || []).forEach(item => {
+      S.registry.push({
+        id: item.item_code,
+        tier: item.tier,
+        desc: item.description || "",
+        dest: item.destination_room || "",
+        count: 1,
+        mode: "item"
+      });
+    });
+
+    // Re-render so the registry panel shows the loaded data
+    r();
+    console.log(`Registry loaded: ${boxes?.length || 0} boxes, ${items?.length || 0} standalone items`);
+  } catch(e){
+    console.error("Registry load error:", e);
+  }
+}
+
+/* ── Confirm & save ── */
+async function confirmBox(){
+  // Get next code from database instead of in-memory counter
+  if(S.mode==="item"){
+    S.boxId = await getNextItemCode();
+  } else {
+    S.boxId = await getNextBoxCode(S.tier);
+  }
+  const active=S.items.filter((_,i)=>!S.removed.includes(i));
+  S.registry.push({id:S.boxId,tier:S.tier,desc:S.desc,dest:S.dest,
+    count:S.mode==="item"?1:active.length,mode:S.mode});
+  S.step=3;r();
+  // Save to both Supabase and Google Sheets
+  saveBoxToSupabase();
+  writeToSheet();
+}
+function addItem(){const inp=q("#new-item");if(inp&&inp.value.trim()){S.items.push(inp.value.trim());r();}}
+
+const CATEGORIES=["Books — Racing","Books — General","Clothing","Kitchen","Kids / Toys","Karting","Electronics","Documents","Tools","Memorabilia","Household","Other"];
+
+function renderEditModal(){
+  const i=S.editingItem;
+  if(i===null)return"";
+  const item=S.items[i];
+  const cat=S.itemCategories[i]||getCategory(item);
+  return`<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:flex-end;padding:0">
+    <div style="background:var(--surface);border-radius:16px 16px 0 0;padding:1.25rem;width:100%;max-height:85vh;overflow-y:auto">
+      <div style="font-size:15px;font-weight:600;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center">
+        Edit item
+        <button onclick="closeEdit()" style="background:none;border:none;font-size:22px;color:var(--muted);padding:0;line-height:1">×</button>
+      </div>
+      <div class="field">
+        <label>Item name</label>
+        <input id="edit-item-text" value="${esc(item)}" style="font-size:14px">
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+          ${CATEGORIES.map(c=>`<button onclick="selectCat(${i},'${c.replace(/'/g,"\'")}')" style="padding:8px 6px;border:1.5px solid ${cat===c?"var(--p)":"var(--border)"};border-radius:7px;background:${cat===c?"var(--pl)":"var(--surface)"};color:${cat===c?"var(--pd)":"var(--text)"};font-size:12px;font-weight:${cat===c?"600":"400"};text-align:center;cursor:pointer;transition:all .15s">${c}</button>`).join("")}
+        </div>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <input id="custom-cat" placeholder="Or type a custom category…" style="flex:1;padding:9px 12px;border:0.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text)">
+          <button onclick="applyCustomCat(${i})" class="btn btn-secondary btn-sm">Use</button>
+        </div>
+      </div>
+      <div class="field" style="margin-top:8px">
+        <label>Est. value (USD)</label>
+        <input id="edit-item-value" type="number" min="0" value="${S.itemValues[i]||0}" style="font-size:14px">
+      </div>
+      <div class="field">
+        <label>Value source / note</label>
+        <input id="edit-value-source" value="${esc(S.itemValueSources[i]||'')}" placeholder="e.g. Amazon current price, manual input…" style="font-size:13px">
+      </div>
+      <button class="btn btn-primary" onclick="saveEdit(${i})" style="margin-top:.5rem">Save changes</button>
+    </div>
+  </div>`;
+}
+
+function openEdit(i){S.editingItem=i;r();}
+function closeEdit(){S.editingItem=null;r();}
+function selectCat(i,cat){S.itemCategories[i]=cat;S.editingItem=i;r();}
+function applyCustomCat(i){
+  const inp=q("#custom-cat");
+  if(inp&&inp.value.trim()){S.itemCategories[i]=inp.value.trim();S.editingItem=i;r();}
+}
+function saveEdit(i){
+  const inp=q("#edit-item-text");
+  if(inp&&inp.value.trim()!==S.items[i]){
+    S.items[i]=inp.value.trim()||S.items[i];
+  }
+  const valInp=q("#edit-item-value");
+  if(valInp){
+    const newVal=+valInp.value;
+    if(newVal!==S.itemValues[i]){
+      S.itemValues[i]=newVal;
+      S.itemValueSources[i]="Manual input";
+    }
+  }
+  const srcInp=q("#edit-value-source");
+  if(srcInp&&srcInp.value.trim())S.itemValueSources[i]=srcInp.value.trim();
+  S.editingItem=null;r();
+}
+
+/* ── QR code ── */
+function drawQR(){
+  const cv=document.getElementById("qr-cv");if(!cv)return;
+  const ctx=cv.getContext("2d");
+  const url=SHEET_URL+"&box="+encodeURIComponent(S.boxId);
+  const img=new Image();img.crossOrigin="anonymous";
+  img.onload=()=>ctx.drawImage(img,0,0,60,60);
+  img.onerror=()=>{ctx.fillStyle="#f5f5f5";ctx.fillRect(0,0,60,60);ctx.fillStyle="#aaa";ctx.font="8px monospace";ctx.textAlign="center";ctx.fillText("QR in",30,25);ctx.fillText("download",30,37);};
+  img.src="https://api.qrserver.com/v1/create-qr-code/?size=60x60&data="+encodeURIComponent(url);
+}
+
+/* ── Download label ── */
+function downloadLabel(){
+  const t=TIER[S.tier];
+  const active=S.items.filter((_,i)=>!S.removed.includes(i));
+  const lines=chunkItems(active,72);
+  const qrUrl=SHEET_URL+"&box="+encodeURIComponent(S.boxId);
+  const cv=document.getElementById("qr-cv");
+  let qrSrc="https://api.qrserver.com/v1/create-qr-code/?size=64x64&data="+encodeURIComponent(qrUrl);
+  try{const d=cv.toDataURL();if(d&&d.length>100)qrSrc=d;}catch(e){}
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Label ${S.boxId}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;background:#f0f0f0;display:flex;flex-direction:column;align-items:center;padding:2rem;gap:1.5rem}.inst{background:#fff;border-radius:10px;padding:1rem 1.5rem;max-width:500px;width:100%;font-size:13px;color:#444;line-height:1.6;border:1px solid #e0e0e0}.inst strong{color:#111}.inst ol{margin:.5rem 0 0 1.25rem}.wrap{background:#fff;border-radius:12px;padding:1.5rem;box-shadow:0 2px 12px rgba(0,0,0,.1);border:1px solid #e0e0e0}.label{width:384px;height:230px;background:#fff;border-radius:6px;overflow:hidden;border:1px solid #bbb;display:flex;flex-direction:column}.stripe{height:10px;background:${t.stripe};flex-shrink:0}.body{display:flex;flex:1;padding:10px 12px;gap:10px;min-height:0}.main{flex:1;display:flex;flex-direction:column;justify-content:space-between;min-width:0}.id{font-family:monospace;font-size:34px;font-weight:bold;line-height:1;color:#111}.badge{display:inline-block;margin-top:4px;background:${t.bb};color:${t.bt};font-size:8px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:3px}.desc{font-size:10.5px;font-weight:bold;color:#222;line-height:1.3;margin-top:5px}.items{font-family:monospace;font-size:7px;color:#666;line-height:1.55;margin-top:4px}.bottom{margin-top:auto;padding-top:5px;border-top:.5px solid #e8e8e8;display:flex;justify-content:space-between;align-items:flex-end}.dest{font-size:8.5px;font-weight:bold;color:#333;text-transform:uppercase;letter-spacing:.04em}.tag{font-family:monospace;font-size:7px;color:#aaa}.frag{font-size:7px;color:#cc3333;font-family:monospace}.div{width:1px;background:#eee;flex-shrink:0;align-self:stretch;margin:0 2px}.qrs{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;flex-shrink:0;width:76px}.qrs img{width:64px;height:64px;border:1px solid #e5e5e5;border-radius:4px;display:block}.qrs p{font-size:7px;color:#999;text-align:center;line-height:1.3}@media print{body{background:#fff;padding:0}.inst{display:none}.wrap{background:none;border:none;box-shadow:none;padding:0}.label{width:4in;height:2.4in;border-radius:0;border:1px solid #999}.id{font-size:36pt}.badge{font-size:7pt}.desc{font-size:9pt}.items div{font-size:6pt;line-height:1.5}.dest{font-size:7.5pt}.tag,.frag{font-size:6pt}.qrs img{width:.7in;height:.7in}.qrs{width:.85in}}</style></head><body>
+<div class="inst"><strong>Printing label ${S.boxId}:</strong><ol><li>Load label printer: 4×2.4 in (Brother DK-11204) or continuous roll</li><li>Press <strong>Ctrl+P</strong> (Win) or <strong>⌘+P</strong> (Mac)</li><li>Paper size: <strong>4×2.4 inches</strong> · Scale: <strong>100% — do not fit to page</strong></li><li>Print · Stick on at least 2 sides of the box</li></ol></div>
+<div class="wrap"><div class="label"><div class="stripe"></div><div class="body"><div class="main"><div><div class="id">${S.boxId}</div><div class="badge">${t.lbl}</div><div class="desc">${S.desc||"—"}</div><div class="items">${lines.map(l=>`<div>${l}</div>`).join("")}</div></div><div class="bottom"><div><div class="dest">→ ${S.dest}</div><div class="tag">Aachen · Jun 2026 · ${active.length} items</div></div>${S.fragile?'<div class="frag">⚠ fragile</div>':""}</div></div><div class="div"></div><div class="qrs"><img src="${qrSrc}" alt="QR"><p>Scan for<br>inventory</p></div></div></div></div>
+</body></html>`;
+  const blob=new Blob([html],{type:"text/html"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="label_"+S.boxId+".html";a.click();URL.revokeObjectURL(a.href);
+}
+
+/* ── Print label via Web Share → Brother iPrint&Label ── */
+async function printLabel(copies){
+  toast("Rendering label…");
+  try{
+    const dataUrl = await renderLabelToCanvas(copies);
+    const blob = await (await fetch(dataUrl)).blob();
+    const file = new File([blob], `label_${S.boxId}_${copies}x.png`, {type:"image/png"});
+
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({
+        title: `Label ${S.boxId} — ${copies} cop${copies===1?"y":"ies"}`,
+        text: `Box ${S.boxId} · ${S.desc} · ${S.dest}`,
+        files:[file]
+      });
+    } else if(navigator.share){
+      // Fallback: share without file (older Android)
+      const url = URL.createObjectURL(blob);
+      await navigator.share({title:`Label ${S.boxId}`, url});
+      setTimeout(()=>URL.revokeObjectURL(url), 5000);
+    } else {
+      // Desktop fallback: download PNG
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `label_${S.boxId}_${copies}x.png`;
+      a.click();
+      toast("Web Share not supported — PNG downloaded instead");
+    }
+  }catch(e){
+    if(e.name!=="AbortError") toast("Share failed: "+e.message);
+  }
+}
+
+async function renderLabelToCanvas(copies){
+  const t = TIER[S.tier];
+  const active = S.items.filter((_,i)=>!S.removed.includes(i));
+  const lines = chunkItems(active, 72);
+
+  // Label dimensions: 696 x 418px (at 174dpi = 4x2.4 inch)
+  const LW = 696, LH = 418;
+  const GAP = 16;
+  const cols = copies === 4 ? 2 : 1;
+  const rows = copies === 4 ? 2 : copies;
+  const CW = LW * cols + GAP * (cols - 1);
+  const CH = LH * rows + GAP * (rows - 1);
+
+  const cv = document.createElement("canvas");
+  cv.width = CW + 48;
+  cv.height = CH + 48;
+  const ctx = cv.getContext("2d");
+
+  // White background
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, cv.width, cv.height);
+
+  for(let ci = 0; ci < copies; ci++){
+    const col = copies === 4 ? ci % 2 : 0;
+    const row = copies === 4 ? Math.floor(ci / 2) : ci;
+    const ox = 24 + col * (LW + GAP);
+    const oy = 24 + row * (LH + GAP);
+    drawLabelOnCanvas(ctx, ox, oy, LW, LH, t, active, lines);
+  }
+
+  // Add QR code to each label
+  const qrUrl = SHEET_URL + "&box=" + encodeURIComponent(S.boxId);
+  const qrImg = await loadImage("https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=" + encodeURIComponent(qrUrl));
+
+  for(let ci = 0; ci < copies; ci++){
+    const col = copies === 4 ? ci % 2 : 0;
+    const row = copies === 4 ? Math.floor(ci / 2) : ci;
+    const ox = 24 + col * (LW + GAP);
+    const oy = 24 + row * (LH + GAP);
+    if(qrImg) ctx.drawImage(qrImg, ox + LW - 130, oy + LH - 140, 110, 110);
+  }
+
+  return cv.toDataURL("image/png");
+}
+
+function drawLabelOnCanvas(ctx, ox, oy, W, H, t, active, lines){
+  // Border
+  ctx.strokeStyle = "#cccccc";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(ox, oy, W, H, 8);
+  ctx.stroke();
+
+  // Clip to label bounds
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(ox, oy, W, H, 8);
+  ctx.clip();
+
+  // White fill
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(ox, oy, W, H);
+
+  // Tier stripe
+  ctx.fillStyle = t.stripe;
+  ctx.fillRect(ox, oy, W, 16);
+
+  // Box ID
+  ctx.fillStyle = "#111111";
+  ctx.font = "bold 72px 'Courier New', monospace";
+  ctx.fillText(S.boxId, ox + 20, oy + 90);
+
+  // Tier badge
+  const badgeX = ox + 20, badgeY = oy + 102;
+  const badgeW = 220, badgeH = 24;
+  ctx.fillStyle = t.bb;
+  ctx.beginPath();
+  ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 4);
+  ctx.fill();
+  ctx.fillStyle = t.bt;
+  ctx.font = "bold 11px Arial, sans-serif";
+  ctx.fillText(t.lbl.toUpperCase(), badgeX + 8, badgeY + 16);
+
+  // Description
+  ctx.fillStyle = "#222222";
+  ctx.font = "bold 18px Arial, sans-serif";
+  ctx.fillText(S.desc || "—", ox + 20, oy + 152);
+
+  // Items
+  ctx.fillStyle = "#666666";
+  ctx.font = "12px 'Courier New', monospace";
+  lines.slice(0, 6).forEach((line, i) => {
+    ctx.fillText(line, ox + 20, oy + 178 + i * 18);
+  });
+
+  // Bottom bar
+  ctx.strokeStyle = "#e8e8e8";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(ox + 16, oy + H - 44);
+  ctx.lineTo(ox + W - 16, oy + H - 44);
+  ctx.stroke();
+
+  // Destination
+  ctx.fillStyle = "#333333";
+  ctx.font = "bold 13px Arial, sans-serif";
+  ctx.fillText("→ " + S.dest.toUpperCase(), ox + 20, oy + H - 26);
+
+  // Move tag
+  ctx.fillStyle = "#aaaaaa";
+  ctx.font = "11px 'Courier New', monospace";
+  const countStr = active.length + " items · Aachen · Jun 2026" + (S.fragile ? " · ⚠ FRAGILE" : "");
+  ctx.fillText(countStr, ox + 20, oy + H - 10);
+
+  // QR placeholder box
+  ctx.strokeStyle = "#e5e5e5";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(ox + W - 130, oy + H - 140, 110, 110);
+  ctx.fillStyle = "#f5f5f5";
+  ctx.fillRect(ox + W - 130, oy + H - 140, 110, 110);
+
+  // QR hint text
+  ctx.fillStyle = "#999999";
+  ctx.font = "10px Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("Scan for", ox + W - 75, oy + H - 72);
+  ctx.fillText("inventory", ox + W - 75, oy + H - 58);
+  ctx.textAlign = "left";
+
+  // Divider line before QR
+  ctx.strokeStyle = "#eeeeee";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(ox + W - 142, oy + H - 152);
+  ctx.lineTo(ox + W - 142, oy + H - 16);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function loadImage(src){
+  return new Promise(resolve=>{
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+/* ── Photo lightbox ── */
+function openLightbox(idx){
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
+  const timeStr = now.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+  const label = document.createElement("div");
+  label.id = "lightbox-overlay";
+  label.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.92);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem";
+  label.innerHTML = `
+    <div style="position:relative;max-width:100%;max-height:80vh;border-radius:10px;overflow:hidden">
+      <img src="${S.photos[idx]}" style="max-width:100%;max-height:80vh;display:block;border-radius:10px;object-fit:contain">
+      <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.75));padding:12px 14px 10px;border-radius:0 0 10px 10px">
+        <div style="color:#fff;font-size:12px;font-family:monospace;line-height:1.6">
+          <span style="opacity:.7">${dateStr} ${timeStr}</span>
+          ${S.boxId?`<span style="margin-left:10px;background:rgba(255,255,255,.2);padding:1px 6px;border-radius:4px">${S.boxId}</span>`:""}
+          <span style="margin-left:10px;opacity:.8">Packed by ${S.packedBy}</span>
+          <span style="margin-left:10px;opacity:.6">Photo ${idx+1}/${S.photos.length}</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:14px">
+      ${idx>0?`<button onclick="closeLightbox();openLightbox(${idx-1})" style="padding:8px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:14px;cursor:pointer;font-family:inherit">← Prev</button>`:""}
+      <button onclick="closeLightbox()" style="padding:8px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:14px;cursor:pointer;font-family:inherit">Close</button>
+      ${idx<S.photos.length-1?`<button onclick="closeLightbox();openLightbox(${idx+1})" style="padding:8px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:14px;cursor:pointer;font-family:inherit">Next →</button>`:""}
+    </div>
+  `;
+  label.addEventListener("click", e=>{ if(e.target===label) closeLightbox(); });
+  document.body.appendChild(label);
+}
+function closeLightbox(){
+  const el=document.getElementById("lightbox-overlay");
+  if(el)el.remove();
+}
+
+/* ── Next box ── */
+function nextBox(){
+  S={...S,step:0,mode:S.mode,tier:"C",dest:"",desc:"",fragile:false,
+     packedBy:S.packedBy,
+     photos:[],items:[],removed:[],
+     itemCategories:{},itemValues:{},itemValueSources:{},
+     singleValue:0,singleValueSource:"",singleCategory:"Household",singleDimensions:"",
+     clarifications:[],clarifyIdx:0,boxId:"",sheetResult:"",editingItem:null,driveFolderUrl:"",driveError:""};
+  r();
+}
+
+/* ── Toast ── */
+function toast(msg){
+  let t=document.getElementById("toast");
+  if(!t){t=document.createElement("div");t.id="toast";t.style.cssText="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#222;color:#fff;font-size:13px;padding:10px 20px;border-radius:20px;z-index:999;transition:opacity .3s;pointer-events:none";document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity="1";clearTimeout(t._to);t._to=setTimeout(()=>t.style.opacity="0",2500);
+}
+
+r();
+loadRegistryFromSupabase();
+</script>
+</body>
+</html>
