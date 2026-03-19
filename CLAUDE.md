@@ -27,7 +27,7 @@ Data loss bugs before the container seals are serious.
 - PWA with manifest and service worker (installable on Android)
 - No backend — all API calls go directly from browser to Anthropic, Google, and Supabase
 - No user accounts yet — single-user, single-move hardcoded
-- Current version: v18b
+- Current version: v19
 
 ---
 
@@ -196,13 +196,22 @@ solve them now — the complexity is not justified at this stage:
 
 ---
 
-## Known issues (open as of v18b)
+## Known issues (open as of v19)
 
 - Sheet formatting inconsistent on first box write — race condition in batchUpdate calls
 - Session registry lost on browser refresh (numbering correct via Supabase, but UI resets)
 - Label PNG QR depends on api.qrserver.com availability
 - Google OAuth re-consent occasionally required after scope upgrade
 - Move ID hardcoded to single move
+
+## Visual theme (as of v19)
+
+- Font: Inter (Google Fonts)
+- Background: `#F7F7F5` warm off-white; cards `#FFFFFF` with `1px #E8E7E2` border
+- Primary / CTA: `#0D0E12` near-black
+- Accent: `#F5D800` yellow — used on Tier A badge, selected states, total bar
+- Tier A: yellow `#F5D800` fill; Tier B: mid-gray `#E8E7E2`; Tier C: light gray `#F0F0EE`
+- Label preview and canvas renderer are unchanged — physical label output is identical to v18
 
 ---
 
@@ -233,6 +242,6 @@ solve them now — the complexity is not justified at this stage:
 
 ---
 
-*Last updated: March 18, 2026. Update this file whenever a significant architectural decision
+*Last updated: March 18, 2026 (v19 restyle). Update this file whenever a significant architectural decision
 is made, a known issue is resolved, or a deferred item moves to active development.*
 
