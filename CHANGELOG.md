@@ -14,6 +14,25 @@ Mark open bugs under **Known issues** at the bottom.
 
 ---
 
+## v19 — March 2026
+
+**Visual restyle — new light theme with Inter font and yellow/black accent**
+
+- CSS-only restyle — zero JavaScript changes, all logic identical to v18b
+- Background changed from purple-tinted `#f5f4fc` to warm off-white `#F7F7F5`; cards are white with `1px` neutral border
+- Font switched from system `-apple-system` stack to Inter (loaded from Google Fonts)
+- Primary colour changed from purple `#534AB7` to near-black `#0D0E12`; yellow `#F5D800` is the single accent
+- Tier A badge and selected states use yellow fill; Tier B mid-gray; Tier C light gray
+- All interactive selected states (Box/Item toggle, Packed By, category grid, tier buttons) use yellow highlight instead of purple
+- Step number circles changed to rounded squares (`border-radius: 8px`)
+- Registry dots changed to rounded squares matching the boxier aesthetic
+- Spinner colours updated from purple to dark/neutral
+- Back links changed from purple to muted gray with dark hover
+- Label preview and canvas label renderer unchanged — physical label output identical
+- Inspired by logistics app reference image (dark charcoal + electric yellow); adapted to light background variant
+
+---
+
 ## v18b — March 2026
 
 **Bug fix: stale state carried between boxes when starting from menu**
