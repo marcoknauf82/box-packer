@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Aachen Move — Box Packer v19</title>
+<title>Aachen Move — Box Packer v20</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -50,12 +50,10 @@ input,select,textarea{font-family:inherit}
 /* ── Cards ── */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1rem 1.125rem;margin-bottom:1rem}
 
-/* ── Tier buttons ── */
-.tier-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem}
-.tier-btn{padding:12px 4px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface);font-size:12px;font-weight:600;color:var(--muted);text-align:center;transition:all .15s;line-height:1.5}
-.tier-btn.sel-A{border-color:var(--yellow-dark);background:var(--yellow);color:var(--text);font-weight:700}
-.tier-btn.sel-B{border-color:#AAAAAA;background:var(--tier-b-bg);color:var(--tier-b-text)}
-.tier-btn.sel-C{border-color:#CCCCCA;background:var(--tier-c-bg);color:var(--tier-c-text)}
+/* ── Tier buttons (A–E, monochrome) ── */
+.tier-row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:1rem}
+.tier-btn{padding:10px 2px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);font-size:12px;font-weight:600;color:var(--muted);text-align:center;transition:all .15s;line-height:1.5}
+.tier-btn.sel{border-color:var(--text);background:var(--text);color:#fff;font-weight:700}
 
 /* ── Form fields ── */
 .field{margin-bottom:12px}
@@ -118,21 +116,35 @@ input,select,textarea{font-family:inherit}
 .status-info{background:var(--bg);color:var(--text);border:1px solid var(--border)}
 .status-warn{background:var(--al);color:var(--ad);border:1px solid #FAC775}
 
-/* ── Label preview (unchanged — physical label) ── */
-.label-preview{border:1px solid #ccc;border-radius:6px;overflow:hidden;background:#fff;color:#111;margin-bottom:1rem}
-.lp-stripe{height:10px}.lp-body{display:flex;padding:10px 12px;gap:10px}
-.lp-main{flex:1;display:flex;flex-direction:column;justify-content:space-between;min-width:0}
-.lp-id{font-family:monospace;font-size:28px;font-weight:700;line-height:1;color:#111}
-.lp-badge{display:inline-block;margin-top:4px;font-size:8px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:3px}
-.lp-desc{font-size:10px;font-weight:600;color:#222;line-height:1.3;margin-top:5px}
-.lp-items{font-family:monospace;font-size:7px;color:#666;line-height:1.6;margin-top:4px}
-.lp-bottom{margin-top:8px;padding-top:5px;border-top:.5px solid #e8e8e8;display:flex;justify-content:space-between;align-items:flex-end}
-.lp-dest{font-size:8px;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:.04em}
-.lp-tag{font-family:monospace;font-size:7px;color:#aaa}
-.lp-divider{width:1px;background:#eee;flex-shrink:0;align-self:stretch;margin:0 2px}
-.lp-qr-side{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;flex-shrink:0;width:76px}
-.lp-qr-side canvas{border:1px solid #e5e5e5;border-radius:3px;display:block}
-.lp-qr-hint{font-size:7px;color:#999;text-align:center;line-height:1.3}
+/* ── v20 Label preview (monochrome 4×6 portrait) ── */
+.v20-label{max-width:380px;margin:0 auto 1rem;background:#fff;color:#000;border:1px solid #C8C8C8;font-family:'Inter',sans-serif;padding:12px;display:flex;flex-direction:column;gap:8px}
+.v20-hd{display:flex;justify-content:space-between;align-items:flex-start}
+.v20-hd-tag{font-size:11px;color:#555;letter-spacing:1px}
+.v20-hd-num{font-size:58px;font-weight:700;line-height:.95;font-family:'Inter',monospace;letter-spacing:-2px;color:#000}
+.v20-hd-tier{background:#000;color:#fff;padding:5px 12px 7px;display:flex;flex-direction:column;align-items:center;min-width:105px}
+.v20-hd-tierletter{font-size:54px;font-weight:700;line-height:1}
+.v20-hd-tiersub{font-size:9px;margin-top:2px;letter-spacing:.5px;text-align:center;line-height:1.15}
+.v20-summary{text-align:center;font-size:17px;font-weight:700;letter-spacing:.3px;color:#000;line-height:1.2}
+.v20-band{background:#000;color:#fff;padding:8px 14px;text-align:center;font-size:17px;font-weight:600;letter-spacing:1px;line-height:1.15}
+.v20-fragile{border:2px solid #000;display:flex;align-items:stretch}
+.v20-frag-side{width:44px;background:repeating-linear-gradient(45deg,#000 0 6px,#fff 6px 12px);display:flex;align-items:center;justify-content:center}
+.v20-frag-tri{background:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#000}
+.v20-frag-text{flex:1;background:#fff;padding:4px;text-align:center;line-height:1.1}
+.v20-frag-main{font-size:16px;font-weight:700;letter-spacing:2px}
+.v20-frag-sub{font-size:10px;letter-spacing:1.5px;margin-top:1px}
+.v20-contents{}
+.v20-contents-head{font-size:11px;color:#555;letter-spacing:1px;margin-bottom:3px}
+.v20-contents-body{column-count:2;column-gap:18px;font-size:12px;line-height:1.45;color:#000}
+.v20-contents-body div{break-inside:avoid}
+.v20-sw{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;border-top:1px solid #000;padding-top:4px;margin-top:2px;color:#000}
+.v20-sw-lbl{color:#555;font-size:11px;letter-spacing:1px}
+.v20-foot{display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid #000;padding-top:6px;margin-top:2px}
+.v20-foot canvas{border:1px solid #e5e5e5}
+.v20-foot-right{text-align:right;font-size:11px;color:#555;line-height:1.5}
+.v20-foot-sm{color:#555}
+.v20-foot-who{color:#000;font-weight:700;font-size:13px}
+.v20-deliver{font-size:11px;line-height:1.35;color:#000}
+.v20-deliver .v20-sw-lbl{display:block;margin-bottom:1px}
 
 /* ── Session registry (in-flow, below packing steps) ── */
 .registry{margin-top:2rem;padding-top:1.25rem;border-top:1px solid var(--border)}
@@ -173,7 +185,7 @@ input,select,textarea{font-family:inherit}
 <body>
 <div class="app">
   <div class="top-bar">
-    <div><div class="top-title">Box Packer</div><div class="top-sub">Aachen move · June 2026</div></div>
+    <div><div class="top-title">Box Packer</div><div class="top-sub">Aachen move · v20</div></div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
       <div id="top-stats" style="font-size:12px;color:var(--muted);text-align:right"></div>
       <div id="auth-indicator"></div>
@@ -196,6 +208,7 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 
 const SUPABASE_URL = "https://csmkqnkdisimkrbqfdgn.supabase.co";
 const SUPABASE_KEY = "sb_publishable_KTvLw4NyGF5EXjzJmg5Bqw_jyozUGEv";
+const MOVE_ID = "f3ec17dd-437a-4e60-bbe5-58d1ce340ed9"; // Chicago → Aachen 2026
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const SHEET_ID = "1PJWbuRemzJIMXFgyxln4256B6Z4Sy7nnyI7-g7gLtHw";
@@ -207,13 +220,27 @@ const ROOT_FOLDER_NAME = "Aachen Move";
 const REGISTRY_SHEET = "Box Registry";
 const ITEMS_SHEET = "Item Detail";
 const ITEM_REGISTRY_SHEET = "Item Registry";
-const ITEM_COUNTER = {A:0,B:0,C:0};
+const ITEM_COUNTER = {};
 
+// Tier system (v20): five tiers A-E, all monochrome.
+// `sub` is the two-line action-oriented subtitle shown on the label badge.
+// `dot` and `stripe` are kept for registry/UI only — no colour on the printed label.
 const TIER = {
-  A:{stripe:"#F5D800",bb:"#F5D800",bt:"#0D0E12",lbl:"Tier A · Daily life",dot:"#C9AE00",name:"Daily life"},
-  B:{stripe:"#888882",bb:"#E8E7E2",bt:"#555553",lbl:"Tier B · Karting gear",dot:"#888882",name:"Karting gear"},
-  C:{stripe:"#C4C3BE",bb:"#F0F0EE",bt:"#888882",lbl:"Tier C · Long-term storage",dot:"#C4C3BE",name:"Storage"},
+  A:{name:"Unpack on arrival",       sub1:"UNPACK ON",    sub2:"ARRIVAL",      dot:"#0D0E12", stripe:"#0D0E12"},
+  B:{name:"Unpack first months",     sub1:"UNPACK FIRST", sub2:"MONTHS",       dot:"#444441", stripe:"#444441"},
+  C:{name:"Post-rental 2027+",       sub1:"POST-RENTAL",  sub2:"2027+",        dot:"#888882", stripe:"#888882"},
+  D:{name:"Long-term storage",       sub1:"LONG-TERM",    sub2:"STORAGE",      dot:"#B4B2A9", stripe:"#B4B2A9"},
+  E:{name:"Karting — early 2027",    sub1:"KARTING",      sub2:"EARLY 2027",   dot:"#C4C3BE", stripe:"#C4C3BE"},
 };
+const TIER_KEYS = ["A","B","C","D","E"];
+
+// App-level config (v20)
+const DELIVER_TO = {
+  name: "Marco Knauf",
+  addr1: "Am Beverbach 2",
+  addr2: "52066 Aachen, Germany",
+};
+const ORIGIN_HOMES = ["Chicago Home","Holiday Home"];
 
 const counters = {A:0,B:0,C:1};
 let googleToken = null;
@@ -221,14 +248,22 @@ let googleUser = null;
 
 let S = {
   screen:"menu", // "menu", "pack", "registry", "registry-detail", "documents"
-  step:0, mode:"box", tier:"C", dest:"", desc:"", fragile:false,
+  step:0, mode:"box", tier:"A", dest:"", desc:"", shortSummary:"", fragile:false,
   packedBy:"Marco",
+  // v20: new fields
+  weightKg:null, boxSize:"Medium", originHome:"Chicago Home", originRoom:"",
+  // End v20 new fields
   photos:[], items:[], removed:[], itemCategories:{}, itemValues:{}, itemValueSources:{},
   singleValue:0, singleValueSource:"", singleCategory:"Household", singleDimensions:"",
   clarifications:[], clarifyIdx:0,
-  boxId:"", sheetResult:"", editingItem:null, driveFolderUrl:"", driveError:"",
+  boxId:"",           // display id: "14" for boxes, "I-01" for items
+  boxNumber:null,     // integer (boxes only)
+  packedAt:null,      // ISO timestamp set at confirm
+  sheetResult:"", editingItem:null, driveFolderUrl:"", driveError:"",
   registry:[],
   detailBox:null, detailItems:[], detailLoading:false,
+  // Cache of origin rooms per home, loaded from Supabase
+  originRoomsByHome:{},
 };
 
 function getApiKey(){return localStorage.getItem("anthropic_key")||"";}
@@ -249,9 +284,10 @@ function chunkItems(items,max){
   return lines;
 }
 function updateTopStats(){
-  const ca={A:0,B:0,C:0};S.registry.forEach(b=>ca[b.tier]++);
+  const ca={A:0,B:0,C:0,D:0,E:0};S.registry.forEach(b=>{if(ca[b.tier]!==undefined)ca[b.tier]++;});
   const el=document.getElementById("top-stats");
-  if(el)el.innerHTML=`${S.registry.length} boxes&nbsp; <span style="color:#C9AE00;font-weight:700">A:${ca.A}</span> <span style="color:#555553">B:${ca.B}</span> <span style="color:#888882">C:${ca.C}</span>`;
+  if(el)el.innerHTML=`${S.registry.length} boxes&nbsp; `+
+    TIER_KEYS.map(t=>`<span style="color:${TIER[t].dot}">${t}:${ca[t]}</span>`).join(" ");
   const ai=document.getElementById("auth-indicator");
   if(ai){
     if(googleUser){
@@ -280,8 +316,9 @@ function view(){
 
 /* ── Main Menu ── */
 function vMenu(){
-  const ca={A:0,B:0,C:0}; S.registry.forEach(b=>ca[b.tier]++);
+  const ca={A:0,B:0,C:0,D:0,E:0}; S.registry.forEach(b=>{if(ca[b.tier]!==undefined)ca[b.tier]++;});
   const totalBoxes = S.registry.length;
+  const tierSummary = TIER_KEYS.map(t=>`${t}:${ca[t]}`).join(" ");
   return `
   <div style="margin-bottom:1.5rem">
     <div style="font-size:15px;color:var(--muted)">What would you like to do?</div>
@@ -308,7 +345,7 @@ function vMenu(){
       </div>
       <div>
         <div class="menu-label">Box Registry</div>
-        <div class="menu-sub">${totalBoxes > 0 ? totalBoxes + ' packed · A:' + ca.A + ' B:' + ca.B + ' C:' + ca.C : 'No boxes packed yet'}</div>
+        <div class="menu-sub">${totalBoxes > 0 ? totalBoxes + ' packed · ' + tierSummary : 'No boxes packed yet'}</div>
       </div>
     </div>
     <div class="menu-card" id="menu-docs">
@@ -327,27 +364,28 @@ function vMenu(){
   ${totalBoxes > 0 ? `<div style="margin-top:1.5rem;padding-top:1rem;border-top:0.5px solid var(--border)">
     <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Recent</div>
     ${[...S.registry].reverse().slice(0,4).map(b=>`<div class="reg-item">
-      <div class="reg-dot" style="background:${TIER[b.tier].dot}"></div>
-      <div class="reg-id">${b.id}</div>
+      <div class="reg-dot" style="background:${(TIER[b.tier]||TIER.A).dot}"></div>
+      <div class="reg-id">${esc(b.id)}</div>
       <div class="reg-desc">${esc(b.desc)}</div>
       <div class="reg-n" style="color:${b.mode==='item'?'var(--g)':'var(--faint)'}">${b.mode==='item'?'item':b.count}</div>
     </div>`).join("")}
   </div>` : ''}`;
 }
 
-/* ── Registry Browser (placeholder — build out next session) ── */
+/* ── Registry Browser ── */
 function vRegistryBrowser(){
-  const ca={A:0,B:0,C:0}; S.registry.forEach(b=>ca[b.tier]++);
+  const ca={A:0,B:0,C:0,D:0,E:0}; S.registry.forEach(b=>{if(ca[b.tier]!==undefined)ca[b.tier]++;});
+  const tierCounts = TIER_KEYS.map(t=>`<span style="color:${TIER[t].dot};font-weight:700">${t}:${ca[t]}</span>`).join(" ");
   return `
   <div class="back-link" id="back-menu">← Menu</div>
   <div class="step-header"><div class="step-num" style="background:var(--text)">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
   </div><div class="step-title">Box Registry</div></div>
   ${S.registry.length === 0 ? '<div class="info-box">No boxes packed yet. Go pack your first box!</div>' :
-  `<div style="margin-bottom:12px;font-size:13px;color:var(--muted)">${S.registry.length} items · <span style="color:#C9AE00;font-weight:700">A:${ca.A}</span> <span style="color:#555553">B:${ca.B}</span> <span style="color:#888882">C:${ca.C}</span></div>
-  ${S.registry.map(b=>`<div class="reg-item" style="cursor:pointer" data-box-id="${b.id}">
-    <div class="reg-dot" style="background:${TIER[b.tier].dot}"></div>
-    <div class="reg-id">${b.id}</div>
+  `<div style="margin-bottom:12px;font-size:13px;color:var(--muted)">${S.registry.length} items · ${tierCounts}</div>
+  ${S.registry.map(b=>`<div class="reg-item" style="cursor:pointer" data-box-id="${esc(b.id)}">
+    <div class="reg-dot" style="background:${(TIER[b.tier]||TIER.A).dot}"></div>
+    <div class="reg-id">${esc(b.id)}</div>
     <div class="reg-desc">${esc(b.desc)}</div>
     <div class="reg-n" style="color:${b.mode==='item'?'var(--g)':'var(--faint)'}">${b.mode==='item'?'item':b.count}</div>
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -355,15 +393,15 @@ function vRegistryBrowser(){
 }
 
 /* ── Load box detail from Supabase ── */
-async function loadBoxDetail(boxCode){
+async function loadBoxDetail(boxId){
   S.detailLoading = true;
   S.detailItems = [];
   S.screen = "registry-detail";
   // Find registry entry for header info
-  S.detailBox = S.registry.find(b => b.id === boxCode) || {id: boxCode, tier:"C", desc:"", dest:""};
+  S.detailBox = S.registry.find(b => b.id === boxId) || {id: boxId, tier:"A", desc:"", dest:""};
   r(); // show loading state immediately
 
-  const isItem = boxCode.startsWith("I-");
+  const isItem = String(boxId).startsWith("I-");
 
   if(isItem){
     // Load standalone item from Supabase
@@ -371,17 +409,20 @@ async function loadBoxDetail(boxCode){
       .from("standalone_items")
       .select("*")
       .eq("move_id", MOVE_ID)
-      .eq("item_code", boxCode)
+      .eq("item_code", boxId)
       .single();
 
     if(!error && data){
       S.detailBox = {
         id: data.item_code, tier: data.tier, desc: data.description,
+        shortSummary: data.short_summary || "",
         dest: data.destination_room, count: 1, mode: "item",
         fragile: data.is_fragile, packedBy: data.packed_by,
         packedAt: data.packed_at, valueCents: data.est_value_cents,
         valueSource: data.value_source, dimensions: data.dimensions,
-        driveUrl: data.drive_folder_url
+        driveUrl: data.drive_folder_url,
+        weightKg: data.weight_kg,
+        originHome: data.origin_home, originRoom: data.origin_room,
       };
       S.detailItems = [{
         description: data.description, category: data.category,
@@ -389,21 +430,30 @@ async function loadBoxDetail(boxCode){
       }];
     }
   } else {
-    // Load box from Supabase
+    // Load box from Supabase — boxes now keyed by integer box_number
+    const num = parseInt(boxId, 10);
+    if(!Number.isFinite(num)){
+      S.detailLoading = false;
+      r();
+      return;
+    }
     const {data: box, error: boxErr} = await sb
       .from("boxes")
       .select("*")
       .eq("move_id", MOVE_ID)
-      .eq("box_code", boxCode)
+      .eq("box_number", num)
       .single();
 
     if(!boxErr && box){
       S.detailBox = {
-        id: box.box_code, tier: box.tier, desc: box.description,
+        id: String(box.box_number), tier: box.tier, desc: box.description,
+        shortSummary: box.short_summary || "",
         dest: box.destination_room, count: box.item_count, mode: "box",
         fragile: box.is_fragile, packedBy: box.packed_by,
         packedAt: box.packed_at, valueCents: box.est_value_cents,
-        driveUrl: box.drive_folder_url
+        driveUrl: box.drive_folder_url,
+        weightKg: box.weight_kg, size: box.box_size,
+        originHome: box.origin_home, originRoom: box.origin_room,
       };
 
       // Load items inside this box
@@ -435,25 +485,31 @@ function vBoxDetail(){
     <div class="back-link" id="back-registry">← Registry</div>
     <div style="text-align:center;padding:2rem;color:var(--muted)">Loading ${esc(b.id)}…</div>`;
 
-  const t = TIER[b.tier] || TIER.C;
+  const t = TIER[b.tier] || TIER.A;
   const totalValue = b.valueCents ? (b.valueCents / 100).toFixed(2) : null;
   const hasItems = S.detailItems.length > 0;
   const hasDrive = !!b.driveUrl;
+  const originDisplay = [b.originHome, b.originRoom].filter(Boolean).join(" · ");
+  const weightDisplay = b.weightKg ? (Number(b.weightKg).toFixed(1) + " kg") : null;
 
   return `
   <div class="back-link" id="back-registry">← Registry</div>
 
-  <div class="card" style="border-left:4px solid ${t.stripe}">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-      <div style="font-family:monospace;font-size:22px;font-weight:700;color:${t.bt}">${esc(b.id)}</div>
-      <div style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;background:${t.bb};color:${t.bt}">${t.lbl}</div>
+  <div class="card" style="border-left:4px solid ${t.dot}">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+      <div style="font-family:monospace;font-size:22px;font-weight:700;color:var(--text)">${esc(b.id)}</div>
+      <div style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;background:var(--text);color:#fff">TIER ${esc(b.tier)} · ${esc(t.name)}</div>
       ${b.fragile ? '<div style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;background:var(--rl);color:var(--rd)">⚠ Fragile</div>' : ''}
     </div>
-    ${b.desc ? `<div style="font-size:14px;margin-bottom:6px">${esc(b.desc)}</div>` : ''}
+    ${b.shortSummary ? `<div style="font-size:15px;font-weight:700;margin-bottom:4px">${esc(b.shortSummary)}</div>` : ''}
+    ${b.desc ? `<div style="font-size:13px;color:var(--muted);margin-bottom:8px">${esc(b.desc)}</div>` : ''}
     <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)">
-      ${b.dest ? `<div>→ ${esc(b.dest)}</div>` : ''}
+      ${originDisplay ? `<div><strong>From:</strong> ${esc(originDisplay)}</div>` : ''}
+      ${b.dest ? `<div><strong>To:</strong> ${esc(b.dest)}</div>` : ''}
+      ${b.size ? `<div>Size: ${esc(b.size)}</div>` : ''}
+      ${weightDisplay ? `<div>Weight: ${weightDisplay}</div>` : ''}
       ${b.packedBy ? `<div>Packed by ${esc(b.packedBy)}</div>` : ''}
-      ${b.packedAt ? `<div>${b.packedAt}</div>` : ''}
+      ${b.packedAt ? `<div>${esc(String(b.packedAt).slice(0,10))}</div>` : ''}
       ${totalValue ? `<div style="font-weight:600;color:var(--text)">$${parseFloat(totalValue).toLocaleString()}</div>` : ''}
     </div>
   </div>
@@ -500,15 +556,21 @@ function vBoxDetail(){
 function reprintFromDetail(){
   if(!S.detailBox) return;
   const b = S.detailBox;
-  // Load detail data into the packing state so the existing label functions work
   S.boxId = b.id;
+  S.boxNumber = b.mode === "box" ? parseInt(b.id, 10) : null;
   S.tier = b.tier;
   S.desc = b.desc || "";
+  S.shortSummary = b.shortSummary || "";
   S.dest = b.dest || "";
   S.fragile = !!b.fragile;
   S.packedBy = b.packedBy || "Marco";
   S.mode = b.mode || "box";
-  // Put items into the items array for label generation
+  S.weightKg = b.weightKg != null ? Number(b.weightKg) : null;
+  S.boxSize = b.size || "Medium";
+  S.originHome = b.originHome || "Chicago Home";
+  S.originRoom = b.originRoom || "";
+  S.packedAt = b.packedAt || null;
+  // Items for label rendering
   S.items = S.detailItems.map(i => i.description);
   S.removed = [];
   S.itemCategories = {};
@@ -517,7 +579,6 @@ function reprintFromDetail(){
     if(item.category) S.itemCategories[i] = item.category;
     if(item.valueCents) S.itemValues[i] = item.valueCents / 100;
   });
-  // Jump to the label step
   S.screen = "pack";
   S.step = 4;
   r();
@@ -536,15 +597,16 @@ function vDocuments(){
 /* ── Step 0: Setup ── */
 function v0(){
   const hasKey = !!getApiKey();
+  const rooms = (S.originRoomsByHome[S.originHome] || []).slice();
   return `
   <div class="back-link" id="back-menu">← Menu</div>
   <div class="step-header"><div class="step-num">1</div><div class="step-title">${S.mode==="item"?"Item":"Box"} setup</div></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem">
-    <button id="btn-mode-box" style="padding:12px;border-radius:9px;border:1.5px solid ${S.mode==="box"?"var(--yellow-dark)":"var(--border)"};background:${S.mode==="box"?"var(--yellow)":"var(--surface)"};color:${S.mode==="box"?"var(--text)":"var(--muted)"};font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">
-      Box<div style="font-size:10px;font-weight:400;margin-top:2px">Multiple items packed</div>
+    <button id="btn-mode-box" style="padding:12px;border-radius:9px;border:1.5px solid ${S.mode==="box"?"var(--text)":"var(--border)"};background:${S.mode==="box"?"var(--text)":"var(--surface)"};color:${S.mode==="box"?"#fff":"var(--muted)"};font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">
+      Box<div style="font-size:10px;font-weight:400;margin-top:2px;opacity:.85">Multiple items packed</div>
     </button>
-    <button id="btn-mode-item" style="padding:12px;border-radius:9px;border:1.5px solid ${S.mode==="item"?"var(--yellow-dark)":"var(--border)"};background:${S.mode==="item"?"var(--yellow)":"var(--surface)"};color:${S.mode==="item"?"var(--text)":"var(--muted)"};font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">
-      Item<div style="font-size:10px;font-weight:400;margin-top:2px">Bulky / furniture</div>
+    <button id="btn-mode-item" style="padding:12px;border-radius:9px;border:1.5px solid ${S.mode==="item"?"var(--text)":"var(--border)"};background:${S.mode==="item"?"var(--text)":"var(--surface)"};color:${S.mode==="item"?"#fff":"var(--muted)"};font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">
+      Item<div style="font-size:10px;font-weight:400;margin-top:2px;opacity:.85">Bulky / furniture</div>
     </button>
   </div>
   ${!hasKey?`<div class="card">
@@ -558,33 +620,72 @@ function v0(){
     <span style="font-size:13px;color:var(--text)">API key saved</span>
     <button class="btn-sm btn-secondary" id="btn-clear-key" style="font-size:11px;padding:4px 10px;border-radius:5px;border:0.5px solid var(--border);background:none;color:var(--muted)">Change</button>
   </div>`}
+
   <div class="card">
+    <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Tier</div>
     <div class="tier-row">
-      ${["A","B","C"].map(t=>`<button class="tier-btn${S.tier===t?" sel-"+t:""}" id="tb-${t}">
+      ${TIER_KEYS.map(t=>`<button class="tier-btn${S.tier===t?" sel":""}" id="tb-${t}">
         <div style="font-size:16px;font-weight:700">${t}</div>
-        <div style="font-size:10px;font-weight:400;margin-top:2px">${TIER[t].name}</div>
       </button>`).join("")}
     </div>
+    <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:-4px;margin-bottom:12px">${esc((TIER[S.tier]||TIER.A).name)}</div>
+
     <div class="field">
-      <label>Destination room in Aachen</label>
-      <input id="f-dest" value="${esc(S.dest)}" placeholder="e.g. Marco's office, Basement, Kids room">
+      <label>Packed from home</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        ${ORIGIN_HOMES.map(h=>`<button type="button" id="oh-${h.replace(/\\s+/g,'-')}" style="padding:9px;border-radius:8px;border:1.5px solid ${S.originHome===h?"var(--text)":"var(--border)"};background:${S.originHome===h?"var(--text)":"var(--surface)"};color:${S.originHome===h?"#fff":"var(--text)"};font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">${esc(h)}</button>`).join("")}
+      </div>
     </div>
+
+    <div class="field">
+      <label>Packed from room</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        ${rooms.map(rm=>`<button type="button" class="room-chip${S.originRoom===rm?" sel":""}" data-room="${esc(rm)}" style="padding:6px 10px;border-radius:16px;border:1px solid ${S.originRoom===rm?"var(--text)":"var(--border)"};background:${S.originRoom===rm?"var(--text)":"var(--surface)"};color:${S.originRoom===rm?"#fff":"var(--text)"};font-size:12px;cursor:pointer;font-family:inherit">${esc(rm)}</button>`).join("")}
+      </div>
+      <div style="display:flex;gap:6px">
+        <input id="f-new-room" placeholder="Or add new room…" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px">
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-add-room" style="padding:8px 14px">Add</button>
+      </div>
+    </div>
+
+    ${S.mode==="box" ? `
+    <div class="field">
+      <label>Box size</label>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+        ${["Small","Medium","Large"].map(sz=>`<button type="button" id="sz-${sz}" style="padding:9px;border-radius:8px;border:1.5px solid ${S.boxSize===sz?"var(--text)":"var(--border)"};background:${S.boxSize===sz?"var(--text)":"var(--surface)"};color:${S.boxSize===sz?"#fff":"var(--text)"};font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">${sz}</button>`).join("")}
+      </div>
+    </div>` : ""}
+
+    <div class="meta-row">
+      <div class="field" style="margin:0">
+        <label>Destination room (optional)</label>
+        <input id="f-dest" value="${esc(S.dest)}" placeholder="e.g. Master bedroom">
+      </div>
+      <div class="field" style="margin:0">
+        <label>Weight (kg, optional)</label>
+        <input id="f-weight" type="number" step="0.1" min="0" value="${S.weightKg!=null?S.weightKg:""}" placeholder="e.g. 8.4">
+      </div>
+    </div>
+
     <div class="field">
       <label>Description hint (optional)</label>
       <input id="f-desc" value="${esc(S.desc)}" placeholder="e.g. Winter clothes, Kitchen appliances">
     </div>
+
     <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;margin-top:4px">
       <input type="checkbox" id="f-fragile" ${S.fragile?"checked":""} style="width:16px;height:16px;accent-color:#0D0E12">
       Mark as fragile
     </label>
+
     <div style="margin-top:12px">
       <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Packed by</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <button id="pb-marco" style="padding:9px;border-radius:8px;border:1.5px solid ${S.packedBy==="Marco"?"var(--yellow-dark)":"var(--border)"};background:${S.packedBy==="Marco"?"var(--yellow)":"var(--surface)"};color:${S.packedBy==="Marco"?"var(--text)":"var(--muted)"};font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Marco</button>
-        <button id="pb-geetha" style="padding:9px;border-radius:8px;border:1.5px solid ${S.packedBy==="Geetha"?"var(--yellow-dark)":"var(--border)"};background:${S.packedBy==="Geetha"?"var(--yellow)":"var(--surface)"};color:${S.packedBy==="Geetha"?"var(--text)":"var(--muted)"};font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Geetha</button>
+        <button id="pb-marco" style="padding:9px;border-radius:8px;border:1.5px solid ${S.packedBy==="Marco"?"var(--text)":"var(--border)"};background:${S.packedBy==="Marco"?"var(--text)":"var(--surface)"};color:${S.packedBy==="Marco"?"#fff":"var(--text)"};font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Marco</button>
+        <button id="pb-geetha" style="padding:9px;border-radius:8px;border:1.5px solid ${S.packedBy==="Geetha"?"var(--text)":"var(--border)"};background:${S.packedBy==="Geetha"?"var(--text)":"var(--surface)"};color:${S.packedBy==="Geetha"?"#fff":"var(--text)"};font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Geetha</button>
       </div>
     </div>
   </div>
+
   <div style="margin-bottom:1rem">
     ${googleUser
       ? `<div class="status-bar status-ok" style="margin-bottom:8px">Google Sheets connected as ${esc(googleUser)}</div>`
@@ -594,7 +695,7 @@ function v0(){
         </button>`}
   </div>
   ${hasKey?`<button class="btn btn-secondary" id="btn-test-key" style="margin-bottom:8px">Test API key connection</button>`:""}
-  <button class="btn btn-primary" id="btn-next0" ${(!S.dest||!hasKey)?"disabled":""}>Next — add photos</button>`;
+  <button class="btn btn-primary" id="btn-next0" ${(!hasKey)?"disabled":""}>Next — add photos</button>`;
 }
 
 /* ── Step 1: Photos ── */
@@ -722,99 +823,161 @@ function v2(){
     <input id="new-item" placeholder="Add missing item…">
     <button class="btn btn-secondary btn-sm" id="btn-add">Add</button>
   </div>
-  <div class="meta-row">
-    <div class="field" style="margin:0"><label>Description</label><input id="f-desc2" value="${esc(S.desc)}" placeholder="Box description"></div>
-    <div class="field" style="margin:0"><label>Destination</label><input id="f-dest2" value="${esc(S.dest)}"></div>
+  <div class="card" style="padding:12px 14px;margin-bottom:12px">
+    <div class="field" style="margin-bottom:10px">
+      <label>Short summary (≤5 words — prints big on label)</label>
+      <input id="f-summary" value="${esc(S.shortSummary)}" placeholder="e.g. Winter clothes and boots" maxlength="60">
+    </div>
+    <div class="field" style="margin-bottom:10px">
+      <label>Full description</label>
+      <input id="f-desc2" value="${esc(S.desc)}" placeholder="Longer description">
+    </div>
+    <div class="meta-row" style="margin-bottom:0">
+      <div class="field" style="margin:0">
+        <label>Destination room (optional)</label>
+        <input id="f-dest2" value="${esc(S.dest)}">
+      </div>
+      <div class="field" style="margin:0">
+        <label>Weight (kg)</label>
+        <input id="f-weight2" type="number" step="0.1" min="0" value="${S.weightKg!=null?S.weightKg:""}" placeholder="e.g. 8.4">
+      </div>
+    </div>
   </div>
   <div class="btn-row">
     <button class="btn btn-secondary" id="btn-back2" style="flex:1">Back</button>
-    <button class="btn btn-primary" id="btn-confirm" style="flex:2">Confirm — save to sheet</button>
+    <button class="btn btn-primary" id="btn-confirm" style="flex:2">Confirm — save box</button>
   </div>`;
 }
 
 /* ── Step 3: Saving ── */
 function v3(){
   return`
-  <div class="step-header"><div class="step-num">4</div><div class="step-title">Saving to Google Sheets…</div></div>
+  <div class="step-header"><div class="step-num">4</div><div class="step-title">Saving ${esc(S.boxId)}…</div></div>
   <div class="status-bar status-info">
     <div style="width:18px;height:18px;border:2px solid #E8E7E2;border-top-color:#0D0E12;border-radius:50%;flex-shrink:0;margin-top:1px" class="spin"></div>
-    Writing ${S.boxId} to your sheet…
+    Writing to Supabase…
   </div>`;
 }
 
 /* ── Step 4: Label ── */
 function v4(){
-  const t=TIER[S.tier];
+  const t=TIER[S.tier]||TIER.A;
   const active=S.items.filter((_,i)=>!S.removed.includes(i));
-  const lines=chunkItems(active,65);
   const isItem=S.mode==="item";
   const totalVal=isItem?S.singleValue:active.reduce((s,_,i)=>s+(S.itemValues[i]||0),0);
+  const originText = [S.originHome, S.originRoom].filter(Boolean).join(" · ").toUpperCase() || "—";
+  const summary = S.shortSummary || S.desc || "—";
+  // Contents preview — up to 7 items + "+N more" rollup if longer
+  const MAX_SHOW = 7;
+  const itemsToShow = active.slice(0, MAX_SHOW);
+  const extra = Math.max(0, active.length - MAX_SHOW);
+  const contentsHtml = isItem
+    ? `<div>· ${esc(S.singleCategory||"Item")}</div>`
+    : itemsToShow.map(item=>`<div>· ${esc(item)}</div>`).join("")
+      + (extra>0 ? `<div>· +${extra} more items</div>` : "");
+  const sizeDisplay = (S.boxSize||"Medium").toUpperCase();
+  const weightDisplay = S.weightKg!=null ? (Number(S.weightKg).toFixed(1) + " kg") : "—";
+  const packedAtDisplay = S.packedAt ? formatTimestamp(S.packedAt) : "";
+
   return`
-  <div class="step-header"><div class="step-num">5</div><div class="step-title">Label — ${S.boxId}</div></div>
+  <div class="step-header"><div class="step-num">5</div><div class="step-title">Label — ${esc(S.boxId)}</div></div>
   ${S.sheetResult==="ok"
     ?`<div class="status-bar status-ok">
-        ${isItem?"Item":"Box"} ${S.boxId} saved · ${totalVal?`Est. value: <strong>$${totalVal.toLocaleString()}</strong>`:"no value set"}
+        ${isItem?"Item":"Box"} ${esc(S.boxId)} saved · ${totalVal?`Est. value: <strong>$${totalVal.toLocaleString()}</strong>`:"no value set"}
         ${S.driveFolderUrl?` · <a href="${S.driveFolderUrl}" target="_blank" style="color:var(--text);font-weight:600">📷 Drive</a>`:""}
         ${S.driveError?`<br><span style="font-size:11px;opacity:.8">Drive error: ${esc(S.driveError)}</span>`:""}
       </div>`
+    :S.sheetResult==="supa-ok"
+    ?`<div class="status-bar status-ok">Saved to Supabase · Sheets not connected. <a href="${SHEET_URL}" target="_blank" style="color:var(--text);font-weight:600">Open sheet</a></div>`
     :S.sheetResult==="skip"
     ?`<div class="status-bar status-warn">Google Sheets not connected — sheet not updated. <a href="${SHEET_URL}" target="_blank" style="color:var(--ad);text-decoration:underline">Open sheet</a></div>`
+    :S.sheetResult==="supa-fail"
+    ?`<div class="status-bar status-err">Supabase save failed — check console. Label below is a preview only, data NOT yet saved.</div>`
     :`<div class="status-bar status-err">Sheet write failed: ${esc(S.sheetResult)} — <a href="${SHEET_URL}" target="_blank" style="color:var(--rd);text-decoration:underline">open sheet</a> to add manually</div>`}
-  <div class="label-preview">
-    <div class="lp-stripe" style="background:${t.stripe}"></div>
-    <div class="lp-body">
-      <div class="lp-main">
-        <div>
-          <div class="lp-id">${S.boxId}</div>
-          <div class="lp-badge" style="background:${t.bb};color:${t.bt}">${t.lbl}</div>
-          <div class="lp-desc">${esc(S.desc)||"—"}</div>
-          ${isItem
-            ?`<div style="margin-top:6px;display:flex;gap:12px">
-                <div style="font-size:9px;color:#444"><span style="color:#888">Cat:</span> ${esc(S.singleCategory)}</div>
-                ${S.singleDimensions?`<div style="font-size:9px;color:#444"><span style="color:#888">Dim:</span> ${esc(S.singleDimensions)}</div>`:""}
-                ${totalVal?`<div style="font-size:9px;font-weight:700;color:var(--text)">$${totalVal.toLocaleString()}</div>`:""}
-              </div>`
-            :`<div class="lp-items">${lines.map(l=>`<div>${esc(l)}</div>`).join("")}</div>`}
-        </div>
-        <div class="lp-bottom">
-          <div><div class="lp-dest">→ ${esc(S.dest)}</div>
-          <div class="lp-tag">Aachen · Jun 2026 · ${active.length} items${S.fragile?" · ⚠ fragile":""} · ${S.packedBy}</div></div>
-        </div>
+
+  <!-- v20 label preview (monochrome 4×6 portrait) -->
+  <div class="v20-label">
+    <div class="v20-hd">
+      <div>
+        <div class="v20-hd-tag">BOX</div>
+        <div class="v20-hd-num">${esc(S.boxId)}</div>
       </div>
-      <div class="lp-divider"></div>
-      <div class="lp-qr-side">
-        <canvas id="qr-cv" width="60" height="60"></canvas>
-        <div class="lp-qr-hint">Scan for<br>inventory</div>
+      <div class="v20-hd-tier">
+        <div class="v20-hd-tierletter">${esc(S.tier)}</div>
+        <div class="v20-hd-tiersub">${esc(t.sub1)}<br>${esc(t.sub2)}</div>
       </div>
     </div>
+    <div class="v20-summary">${esc(summary)}</div>
+    <div class="v20-band">${esc(originText)}</div>
+    ${S.fragile ? `<div class="v20-fragile">
+      <div class="v20-frag-side"><div class="v20-frag-tri">⚠</div></div>
+      <div class="v20-frag-text"><div class="v20-frag-main">FRAGILE</div><div class="v20-frag-sub">HANDLE WITH CARE</div></div>
+      <div class="v20-frag-side"><div class="v20-frag-tri">⚠</div></div>
+    </div>` : ''}
+    <div class="v20-contents">
+      <div class="v20-contents-head">CONTENTS (${isItem?1:active.length} item${(isItem?1:active.length)===1?"":"s"})</div>
+      <div class="v20-contents-body">${contentsHtml}</div>
+    </div>
+    <div class="v20-sw">
+      <div><span class="v20-sw-lbl">SIZE</span> ${isItem ? "—" : esc(sizeDisplay)}</div>
+      <div><span class="v20-sw-lbl">WEIGHT</span> ${esc(weightDisplay)}</div>
+    </div>
+    <div class="v20-foot">
+      <canvas id="qr-cv" width="60" height="60"></canvas>
+      <div class="v20-foot-right">
+        <div class="v20-foot-sm">Packed by</div>
+        <div class="v20-foot-who">${esc(S.packedBy)}</div>
+        <div class="v20-foot-sm">${esc(packedAtDisplay)}</div>
+      </div>
+    </div>
+    <div class="v20-deliver">
+      <span class="v20-sw-lbl">DELIVER TO</span>
+      <div>${esc(DELIVER_TO.name)} · ${esc(DELIVER_TO.addr1)} · ${esc(DELIVER_TO.addr2)}</div>
+    </div>
   </div>
+
   <div style="background:var(--yellow);border:1px solid var(--yellow-dark);border-radius:12px;padding:1rem;margin-bottom:1rem">
-    <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px">Print to Brother QL</div>
+    <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px">Print to Nelko PL70e</div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px">
       <button class="btn btn-success" id="btn-print1">1 copy</button>
       <button class="btn btn-success" id="btn-print2">2 copies</button>
       <button class="btn btn-success" id="btn-print4">4 copies</button>
     </div>
-    <div style="font-size:11px;color:var(--text);text-align:center;opacity:.7">Tap to share PNG to Brother iPrint&amp;Label app</div>
+    <div style="font-size:11px;color:var(--text);text-align:center;opacity:.7">Tap to share PNG to NELKO app (or Shipping Printer Pro)</div>
   </div>
-  <button class="btn btn-secondary" id="btn-dl" style="margin-bottom:8px">Download label HTML</button>
+  <button class="btn btn-secondary" id="btn-dl" style="margin-bottom:8px">Download label PNG</button>
   <div style="display:flex;gap:8px">
     <button class="btn btn-secondary" id="btn-back-menu" style="flex:1">Menu</button>
     <button class="btn btn-secondary" id="btn-next-box" style="flex:1">Pack next box</button>
   </div>`;
 }
 
+// Format an ISO timestamp to "Apr 19, 2026 · 14:32"
+function formatTimestamp(iso){
+  try{
+    const d = new Date(iso);
+    if(isNaN(d.getTime())) return "";
+    const m = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()];
+    const day = d.getDate();
+    const y = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2,"0");
+    const mm = String(d.getMinutes()).padStart(2,"0");
+    return `${m} ${day}, ${y} · ${hh}:${mm}`;
+  }catch(e){return "";}
+}
+
 /* ── Registry ── */
 function vreg(){
   const rr=S.registry;if(!rr.length)return"";
-  const ca={A:0,B:0,C:0};rr.forEach(b=>ca[b.tier]++);
+  const ca={A:0,B:0,C:0,D:0,E:0};rr.forEach(b=>{if(ca[b.tier]!==undefined)ca[b.tier]++;});
+  const tierCounts = TIER_KEYS.map(t=>`<span style="color:${TIER[t].dot};font-weight:700">${t}:${ca[t]}</span>`).join("");
   return`<div class="registry">
   <div class="reg-header"><span>Registry (${rr.length})</span>
-    <div class="reg-counts"><span style="color:#C9AE00;font-weight:700">A:${ca.A}</span><span style="color:#555553">B:${ca.B}</span><span style="color:#888882">C:${ca.C}</span></div>
+    <div class="reg-counts">${tierCounts}</div>
   </div>
   ${[...rr].reverse().slice(0,8).map(b=>`<div class="reg-item">
-    <div class="reg-dot" style="background:${TIER[b.tier].dot}"></div>
-    <div class="reg-id">${b.id}</div>
+    <div class="reg-dot" style="background:${(TIER[b.tier]||TIER.A).dot}"></div>
+    <div class="reg-id">${esc(b.id)}</div>
     <div class="reg-desc">${esc(b.desc)}</div>
     <div class="reg-n" style="color:${b.mode==='item'?'var(--g)':'var(--faint)'}">${b.mode==='item'?'item':b.count}</div>
   </div>`).join("")}
@@ -823,8 +986,23 @@ function vreg(){
 
 /* ── Event binding ── */
 function bind(){
-  // Menu navigation
-  q("#menu-pack")?.addEventListener("click",()=>{S.screen="pack";S.step=0;S.tier="C";S.dest="";S.desc="";S.fragile=false;S.photos=[];S.items=[];S.removed=[];S.itemCategories={};S.itemValues={};S.itemValueSources={};S.singleValue=0;S.singleValueSource="";S.singleCategory="Household";S.singleDimensions="";S.clarifications=[];S.clarifyIdx=0;S.boxId="";S.sheetResult="";S.editingItem=null;S.driveFolderUrl="";S.driveError="";r();});
+  // Menu navigation (v20: preserves session defaults for home/room/size/packedBy)
+  q("#menu-pack")?.addEventListener("click",()=>{
+    S.screen="pack"; S.step=0;
+    // Clear PER-BOX fields only — keep session defaults
+    S.dest=""; S.desc=""; S.shortSummary=""; S.fragile=false;
+    S.photos=[]; S.items=[]; S.removed=[];
+    S.itemCategories={}; S.itemValues={}; S.itemValueSources={};
+    S.singleValue=0; S.singleValueSource=""; S.singleCategory="Household"; S.singleDimensions="";
+    S.clarifications=[]; S.clarifyIdx=0;
+    S.boxId=""; S.boxNumber=null; S.packedAt=null;
+    S.sheetResult=""; S.editingItem=null; S.driveFolderUrl=""; S.driveError="";
+    S.weightKg=null;
+    // Preserved across boxes: S.tier, S.originHome, S.originRoom, S.boxSize, S.packedBy, S.mode
+    // But default tier to A if this is the very first box of the session
+    if(!S.tier) S.tier = "A";
+    r();
+  });
   q("#menu-registry")?.addEventListener("click",()=>{S.screen="registry";r();});
   q("#menu-docs")?.addEventListener("click",()=>{S.screen="documents";r();});
   q("#back-menu")?.addEventListener("click",()=>{S.screen="menu";r();});
@@ -843,13 +1021,51 @@ function bind(){
   q("#btn-clear-key")?.addEventListener("click",()=>{localStorage.removeItem("anthropic_key");r();});
   q("#btn-mode-box")?.addEventListener("click",()=>{S.mode="box";r();});
   q("#btn-mode-item")?.addEventListener("click",()=>{S.mode="item";r();});
-  q("#btn-next0")?.addEventListener("click",()=>{if(S.dest&&getApiKey()){S.step=1;r();}});
-  q("#f-dest")?.addEventListener("input",e=>{S.dest=e.target.value;const b=q("#btn-next0");if(b)b.disabled=!S.dest||!getApiKey();});
+  q("#btn-next0")?.addEventListener("click",()=>{
+    if(!getApiKey()){ toast("Save your API key first"); return; }
+    // Destination room is now optional — origin is what matters at pack time.
+    S.step=1; r();
+  });
+  q("#f-dest")?.addEventListener("input",e=>{S.dest=e.target.value;});
   q("#f-desc")?.addEventListener("input",e=>S.desc=e.target.value);
   q("#f-fragile")?.addEventListener("change",e=>S.fragile=e.target.checked);
+  q("#f-weight")?.addEventListener("input",e=>{
+    const v = parseFloat(e.target.value);
+    S.weightKg = Number.isFinite(v) && v >= 0 ? v : null;
+  });
   q("#pb-marco")?.addEventListener("click",()=>{S.packedBy="Marco";r();});
   q("#pb-geetha")?.addEventListener("click",()=>{S.packedBy="Geetha";r();});
-  ["A","B","C"].forEach(t=>q("#tb-"+t)?.addEventListener("click",()=>{S.tier=t;r();}));
+  // Tier buttons (v20: A–E)
+  TIER_KEYS.forEach(t=>q("#tb-"+t)?.addEventListener("click",()=>{S.tier=t;r();}));
+  // Origin home picker
+  ORIGIN_HOMES.forEach(h=>{
+    const id = "#oh-" + h.replace(/\s+/g,"-");
+    q(id)?.addEventListener("click", ()=>{
+      S.originHome = h;
+      // Reset room when switching homes unless new home has the current room
+      const rooms = S.originRoomsByHome[h] || [];
+      if(!rooms.includes(S.originRoom)) S.originRoom = "";
+      r();
+    });
+  });
+  // Room chips
+  qq(".room-chip").forEach(el => {
+    el.addEventListener("click", () => { S.originRoom = el.dataset.room; r(); });
+  });
+  // Add new room
+  q("#btn-add-room")?.addEventListener("click", async ()=>{
+    const input = q("#f-new-room");
+    if(!input) return;
+    const name = input.value.trim();
+    if(!name){ toast("Enter a room name first"); return; }
+    const ok = await addOriginRoom(S.originHome, name);
+    if(ok){ S.originRoom = name; r(); }
+  });
+  q("#f-new-room")?.addEventListener("keydown",e=>{
+    if(e.key==="Enter"){ e.preventDefault(); q("#btn-add-room")?.click(); }
+  });
+  // Box size buttons
+  ["Small","Medium","Large"].forEach(sz=>q("#sz-"+sz)?.addEventListener("click",()=>{S.boxSize=sz;r();}));
   q("#btn-google-auth")?.addEventListener("click",startGoogleAuth);
   q("#btn-test-key")?.addEventListener("click",testApiKey);
   // Step 1
@@ -866,12 +1082,16 @@ function bind(){
   q("#btn-confirm")?.addEventListener("click",confirmBox);
   q("#btn-add")?.addEventListener("click",addItem);
   q("#new-item")?.addEventListener("keydown",e=>{if(e.key==="Enter")addItem();});
+  q("#f-summary")?.addEventListener("input",e=>S.shortSummary=e.target.value);
   q("#f-desc2")?.addEventListener("input",e=>S.desc=e.target.value);
   q("#f-dest2")?.addEventListener("input",e=>S.dest=e.target.value);
+  q("#f-weight2")?.addEventListener("input",e=>{
+    const v = parseFloat(e.target.value);
+    S.weightKg = Number.isFinite(v) && v >= 0 ? v : null;
+  });
   qq("[data-di]").forEach(b=>b.addEventListener("click",()=>{S.removed.push(+b.dataset.di);r();}));
   qq("[data-ri]").forEach(b=>b.addEventListener("click",()=>{S.removed=S.removed.filter(x=>x!==+b.dataset.ri);r();}));
   qq("[data-ci]").forEach(b=>b.addEventListener("click",()=>{S.clarifyIdx=+b.dataset.ci+1;r();}));
-  // data-idx bindings removed — editing now only through pencil modal
   qq(".item-edit-btn").forEach(b=>b.addEventListener("click",()=>openEdit(+b.dataset.ei)));
   // Step 4
   q("#btn-dl")?.addEventListener("click",downloadLabel);
@@ -942,9 +1162,20 @@ async function writeToSheet(){
     const regStartRow = regInfo.rowCount + 1;
     const itemStartRow = itemInfo.rowCount + 1;
     // Append data — include Drive folder URL in registry row
-    const t = TIER[S.tier];
+    const t = TIER[S.tier] || TIER.A;
     const photosCell = driveFolderUrl ? `=HYPERLINK("${driveFolderUrl}","📷 View photos")` : "";
-    const regRow=[[S.boxId, S.tier, t.lbl.split(" · ")[1]||S.tier, S.desc, S.dest, active.length, S.fragile?"Yes":"No", today, SHEET_URL+"&box="+encodeURIComponent(S.boxId), photosCell]];
+    // v20: include short_summary, origin, size, weight in the sheet row
+    const regRow=[[
+      S.boxId, S.tier, t.name,
+      S.shortSummary || "",
+      S.desc || "",
+      [S.originHome, S.originRoom].filter(Boolean).join(" · "),
+      S.dest || "",
+      S.boxSize || "",
+      S.weightKg != null ? Number(S.weightKg).toFixed(1) : "",
+      active.length, S.fragile?"Yes":"No", today,
+      SHEET_URL+"&box="+encodeURIComponent(S.boxId), photosCell
+    ]];
     await sheetsAppend(REGISTRY_SHEET, regRow);
     const itemRows=active.map((item,i)=>[S.boxId, i+1, S.itemCategories?.[i]||getCategory(item), item, 1, ""]);
     if(itemRows.length) await sheetsAppend(ITEMS_SHEET, itemRows);
@@ -988,14 +1219,14 @@ async function ensureHeaders(){
   const hasHeader=vals.some(row=>row[0]==="Box ID");
   if(hasHeader) return;
   // Write headers to both sheets
-  const regHeaders=[["Box ID","Tier","Tier Name","Description","Destination","# Items","Fragile?","Packed By","Date Packed","Est. Value (USD)","Inventory QR URL","Photos (Drive)"]];
+  const regHeaders=[["Box ID","Tier","Tier Name","Short Summary","Description","Packed From","Destination","Size","Weight (kg)","# Items","Fragile?","Date Packed","Inventory QR URL","Photos (Drive)"]];
   const itemHeaders=[["Box ID","Item #","Category","Item Description","Qty","Est. Value (USD)","Value Source","Notes"]];
   await sheetsUpdate(REGISTRY_SHEET,"A1",regHeaders);
   await sheetsUpdate(ITEMS_SHEET,"A1",itemHeaders);
   // Format header rows
   const regId=await getSheetId(REGISTRY_SHEET);
   const itemId=await getSheetId(ITEMS_SHEET);
-  await formatHeaderRow(regId,12);
+  await formatHeaderRow(regId,14);
   await formatHeaderRow(itemId,8);
   // Check/create Item Registry
   const irCheck=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/'${ITEM_REGISTRY_SHEET}'!A1`,
@@ -1362,7 +1593,8 @@ Return ONLY a valid JSON object with these exact keys:
 - "items": array of individual item name strings. Be precise: include brand names if visible, full book titles and authors if readable. One string per physical item.
 - "values": array of estimated USD replacement values (numbers), one per item in same order as items array.
 - "valueSources": array of strings explaining how each value was estimated — e.g. "Current Amazon price for comparable item", "Brand new retail price", "Estimated used/depreciated value", "Default category estimate". One per item matching values array.
-- "desc": short 4-8 word description of the box contents
+- "shortSummary": a very short label-friendly description of the box, MAXIMUM 5 words, sentence case, no trailing punctuation. Examples: "Winter clothes and boots", "Kitchen utensils", "Books and paperwork", "Kids art supplies". This prints in bold on the label.
+- "desc": a longer 1-2 sentence description of the box contents for inventory records.
 - "clarifications": array of up to 2 objects with "question" (string) and "options" (array of 3-4 short strings), for anything genuinely uncertain
 - "fragile": boolean
 No markdown, no explanation, only the JSON object.`,
@@ -1426,50 +1658,97 @@ No markdown, no explanation, only the JSON object.`,
 }
 
 /* ── Supabase: get next available code ── */
-const MOVE_ID = "f3ec17dd-437a-4e60-bbe5-58d1ce340ed9"; // Chicago → Aachen 2026
 
-async function getNextBoxCode(tier){
-  // Ask the database: what box codes exist for this tier in this move?
+// v20: boxes are now numbered globally (integer), not per-tier.
+// Returns next integer (1, 2, 3…). On DB error returns null so caller can surface it.
+async function getNextBoxNumber(){
   const {data, error} = await sb
     .from("boxes")
-    .select("box_code")
+    .select("box_number")
     .eq("move_id", MOVE_ID)
-    .like("box_code", tier + "-%");
+    .not("box_number", "is", null)
+    .order("box_number", {ascending: false})
+    .limit(1);
 
-  if(error){ console.error("Supabase error:", error); return tier + "-01"; }
-
-  // Find the highest number (e.g. if A-01, A-02, A-05 exist → highest is 5)
-  let max = 0;
-  (data||[]).forEach(row => {
-    const num = parseInt(row.box_code.split("-")[1], 10);
-    if(num > max) max = num;
-  });
-  return tier + "-" + String(max + 1).padStart(2, "0");
+  if(error){ console.error("Supabase getNextBoxNumber error:", error); return null; }
+  const max = (data && data[0] && Number.isFinite(data[0].box_number)) ? data[0].box_number : 0;
+  return max + 1;
 }
 
+// Standalone items keep the "I-NN" code format (visually distinct from box numbers).
 async function getNextItemCode(){
   const {data, error} = await sb
     .from("standalone_items")
     .select("item_code")
     .eq("move_id", MOVE_ID);
 
-  if(error){ console.error("Supabase error:", error); return "I-01"; }
+  if(error){ console.error("Supabase getNextItemCode error:", error); return null; }
 
   let max = 0;
   (data||[]).forEach(row => {
-    const num = parseInt(row.item_code.split("-")[1], 10);
-    if(num > max) max = num;
+    const parts = String(row.item_code||"").split("-");
+    const num = parseInt(parts[1], 10);
+    if(Number.isFinite(num) && num > max) max = num;
   });
   return "I-" + String(max + 1).padStart(2, "0");
 }
 
-/* ── Supabase: save box + items to database ── */
+// Load origin rooms per home from Supabase into S.originRoomsByHome
+async function loadOriginRooms(){
+  try {
+    const {data, error} = await sb
+      .from("origin_rooms")
+      .select("origin_home, room_name")
+      .eq("move_id", MOVE_ID)
+      .order("room_name", {ascending: true});
+    if(error){ console.error("loadOriginRooms error:", error); return; }
+    const byHome = {};
+    (data||[]).forEach(row => {
+      if(!byHome[row.origin_home]) byHome[row.origin_home] = [];
+      byHome[row.origin_home].push(row.room_name);
+    });
+    S.originRoomsByHome = byHome;
+    if(S.screen === "pack" && S.step === 0) r();
+  } catch(e){ console.error("loadOriginRooms exception:", e); }
+}
+
+// Add a new origin room to Supabase + local cache.
+async function addOriginRoom(home, roomName){
+  const name = (roomName||"").trim();
+  if(!name) return false;
+  // Optimistic local add
+  if(!S.originRoomsByHome[home]) S.originRoomsByHome[home] = [];
+  if(!S.originRoomsByHome[home].includes(name)){
+    S.originRoomsByHome[home].push(name);
+    S.originRoomsByHome[home].sort();
+  }
+  // Persist
+  try{
+    const {error} = await sb.from("origin_rooms").insert({
+      move_id: MOVE_ID, origin_home: home, room_name: name
+    });
+    // Unique constraint violation is fine — room already existed
+    if(error && !String(error.message||"").toLowerCase().includes("duplicate")){
+      console.error("addOriginRoom error:", error);
+      toast("Couldn't save new room — check connection");
+      return false;
+    }
+  }catch(e){ console.error("addOriginRoom exception:", e); }
+  return true;
+}
+
+/* ── Supabase: save box + items to database.
+   Returns true on success, false on any write failure so confirmBox can surface it. ── */
 async function saveBoxToSupabase(){
   const active = S.items.filter((_,i) => !S.removed.includes(i));
-  const totalCents = active.reduce((sum, _, i) => {
-    const origIdx = S.items.indexOf(active[i] === active[i] ? S.items.filter((_,j)=>!S.removed.includes(j))[i] : active[i]);
-    return sum + Math.round((S.itemValues?.[origIdx] || 0) * 100);
-  }, 0);
+  // totalCents: sum over the ORIGINAL indices of kept items
+  let totalCents = 0;
+  S.items.forEach((_, idx) => {
+    if(S.removed.includes(idx)) return;
+    totalCents += Math.round((S.itemValues?.[idx] || 0) * 100);
+  });
+
+  const packedAtIso = S.packedAt || new Date().toISOString();
 
   if(S.mode === "item"){
     // Save standalone item
@@ -1479,49 +1758,68 @@ async function saveBoxToSupabase(){
       tier: S.tier,
       category: S.singleCategory || "Household",
       description: S.desc || S.items[0] || "Standalone item",
-      destination_room: S.dest,
+      short_summary: S.shortSummary || null,
+      destination_room: S.dest || null,
       dimensions: S.singleDimensions || null,
       is_fragile: S.fragile,
       packed_by: S.packedBy,
+      packed_at: packedAtIso.slice(0,10),
       est_value_cents: Math.round((S.singleValue || 0) * 100),
       value_source: S.singleValueSource || null,
       value_source_type: S.singleValueSource ? "ai_estimate" : "not_set",
+      weight_kg: S.weightKg != null ? Number(S.weightKg) : null,
+      origin_home: S.originHome || null,
+      origin_room: S.originRoom || null,
     });
-    if(error) console.error("Supabase standalone_items error:", error);
-  } else {
-    // Save box
-    const {data: boxData, error: boxErr} = await sb.from("boxes").insert({
-      move_id: MOVE_ID,
-      box_code: S.boxId,
-      tier: S.tier,
-      description: S.desc,
-      destination_room: S.dest,
-      is_fragile: S.fragile,
-      packed_by: S.packedBy,
-      est_value_cents: totalCents,
-      item_count: active.length,
-    }).select("id").single();
+    if(error){ console.error("Supabase standalone_items error:", error); return false; }
+    return true;
+  }
 
-    if(boxErr){ console.error("Supabase box error:", boxErr); return; }
+  // Save box (v20: box_number integer, plus new metadata)
+  const {data: boxData, error: boxErr} = await sb.from("boxes").insert({
+    move_id: MOVE_ID,
+    box_number: S.boxNumber,
+    tier: S.tier,
+    description: S.desc || null,
+    short_summary: S.shortSummary || null,
+    destination_room: S.dest || null,
+    is_fragile: S.fragile,
+    packed_by: S.packedBy,
+    packed_at: packedAtIso.slice(0,10),
+    est_value_cents: totalCents,
+    item_count: active.length,
+    weight_kg: S.weightKg != null ? Number(S.weightKg) : null,
+    box_size: S.boxSize || null,
+    origin_home: S.originHome || null,
+    origin_room: S.originRoom || null,
+  }).select("id").single();
 
-    // Save each item inside the box
-    const itemRows = active.map((item, i) => ({
+  if(boxErr){ console.error("Supabase box error:", boxErr); return false; }
+
+  // Save each item inside the box
+  const itemRows = [];
+  let displayIdx = 0;
+  S.items.forEach((item, origIdx) => {
+    if(S.removed.includes(origIdx)) return;
+    displayIdx += 1;
+    itemRows.push({
       box_id: boxData.id,
       move_id: MOVE_ID,
-      item_number: i + 1,
-      category: S.itemCategories?.[S.items.indexOf(item)] || "Other",
+      item_number: displayIdx,
+      category: S.itemCategories?.[origIdx] || "Other",
       description: item,
       quantity: 1,
-      est_value_cents: Math.round((S.itemValues?.[S.items.indexOf(item)] || 0) * 100),
-      value_source: S.itemValueSources?.[S.items.indexOf(item)] || null,
-      value_source_type: S.itemValueSources?.[S.items.indexOf(item)] ? "ai_estimate" : "not_set",
-    }));
+      est_value_cents: Math.round((S.itemValues?.[origIdx] || 0) * 100),
+      value_source: S.itemValueSources?.[origIdx] || null,
+      value_source_type: S.itemValueSources?.[origIdx] ? "ai_estimate" : "not_set",
+    });
+  });
 
-    if(itemRows.length > 0){
-      const {error: itemErr} = await sb.from("box_items").insert(itemRows);
-      if(itemErr) console.error("Supabase box_items error:", itemErr);
-    }
+  if(itemRows.length > 0){
+    const {error: itemErr} = await sb.from("box_items").insert(itemRows);
+    if(itemErr){ console.error("Supabase box_items error:", itemErr); return false; }
   }
+  return true;
 }
 
 /* ── Supabase: load existing boxes + items into registry on startup ── */
@@ -1530,7 +1828,7 @@ async function loadRegistryFromSupabase(){
     // Load all boxes for this move
     const {data: boxes, error: boxErr} = await sb
       .from("boxes")
-      .select("box_code, tier, description, destination_room, item_count")
+      .select("box_number, box_code, tier, description, short_summary, destination_room, item_count")
       .eq("move_id", MOVE_ID)
       .order("created_at", {ascending: true});
 
@@ -1539,7 +1837,7 @@ async function loadRegistryFromSupabase(){
     // Load all standalone items for this move
     const {data: items, error: itemErr} = await sb
       .from("standalone_items")
-      .select("item_code, tier, description, destination_room")
+      .select("item_code, tier, description, short_summary, destination_room")
       .eq("move_id", MOVE_ID)
       .order("created_at", {ascending: true});
 
@@ -1548,10 +1846,12 @@ async function loadRegistryFromSupabase(){
     // Build the registry array from database results
     S.registry = [];
     (boxes || []).forEach(b => {
+      // v20: prefer box_number, fall back to box_code for any legacy rows.
+      const id = (b.box_number != null) ? String(b.box_number) : (b.box_code || "?");
       S.registry.push({
-        id: b.box_code,
+        id,
         tier: b.tier,
-        desc: b.description || "",
+        desc: b.short_summary || b.description || "",
         dest: b.destination_room || "",
         count: b.item_count || 0,
         mode: "box"
@@ -1561,7 +1861,7 @@ async function loadRegistryFromSupabase(){
       S.registry.push({
         id: item.item_code,
         tier: item.tier,
-        desc: item.description || "",
+        desc: item.short_summary || item.description || "",
         dest: item.destination_room || "",
         count: 1,
         mode: "item"
@@ -1576,21 +1876,74 @@ async function loadRegistryFromSupabase(){
   }
 }
 
-/* ── Confirm & save ── */
+/* ── Confirm & save (v20: surfaces Supabase failures, sets timestamp) ── */
 async function confirmBox(){
-  // Get next code from database instead of in-memory counter
-  if(S.mode==="item"){
-    S.boxId = await getNextItemCode();
+  // Guard: prevent double-submission while save is in flight
+  const confirmBtn = q("#btn-confirm");
+  if(confirmBtn) confirmBtn.disabled = true;
+
+  // Set the packed timestamp once, at confirm time
+  S.packedAt = new Date().toISOString();
+
+  // Get the next ID
+  if(S.mode === "item"){
+    const code = await getNextItemCode();
+    if(!code){
+      toast("Couldn't get next item code — check connection");
+      if(confirmBtn) confirmBtn.disabled = false;
+      return;
+    }
+    S.boxId = code;
+    S.boxNumber = null;
   } else {
-    S.boxId = await getNextBoxCode(S.tier);
+    const num = await getNextBoxNumber();
+    if(num == null){
+      toast("Couldn't get next box number — check connection");
+      if(confirmBtn) confirmBtn.disabled = false;
+      return;
+    }
+    S.boxNumber = num;
+    S.boxId = String(num);
   }
-  const active=S.items.filter((_,i)=>!S.removed.includes(i));
-  S.registry.push({id:S.boxId,tier:S.tier,desc:S.desc,dest:S.dest,
-    count:S.mode==="item"?1:active.length,mode:S.mode});
-  S.step=3;r();
-  // Save to both Supabase and Google Sheets
-  saveBoxToSupabase();
-  writeToSheet();
+
+  // Show saving screen
+  S.step = 3;
+  r();
+
+  // Save to Supabase (source of truth) — await result
+  const ok = await saveBoxToSupabase();
+  if(!ok){
+    S.sheetResult = "supa-fail";
+    S.step = 4;
+    r();
+    setTimeout(drawQR, 50);
+    return;
+  }
+
+  // Push to local registry
+  const active = S.items.filter((_,i) => !S.removed.includes(i));
+  S.registry.push({
+    id: S.boxId, tier: S.tier,
+    desc: S.shortSummary || S.desc,
+    dest: S.dest,
+    count: S.mode === "item" ? 1 : active.length,
+    mode: S.mode
+  });
+
+  // Fire Sheets write if connected — non-blocking, result is cosmetic only
+  if(googleToken){
+    writeToSheet().catch(e => {
+      console.error("writeToSheet failed:", e);
+      S.sheetResult = e.message || "sheets error";
+      if(S.step === 4) r();
+    });
+  } else {
+    // Already saved to Supabase — skip sheets, show success
+    S.sheetResult = "supa-ok";
+    S.step = 4;
+    r();
+    setTimeout(drawQR, 50);
+  }
 }
 function addItem(){const inp=q("#new-item");if(inp&&inp.value.trim()){S.items.push(inp.value.trim());r();}}
 
@@ -1670,22 +2023,18 @@ function drawQR(){
   img.src="https://api.qrserver.com/v1/create-qr-code/?size=60x60&data="+encodeURIComponent(url);
 }
 
-/* ── Download label ── */
-function downloadLabel(){
-  const t=TIER[S.tier];
-  const active=S.items.filter((_,i)=>!S.removed.includes(i));
-  const lines=chunkItems(active,72);
-  const qrUrl=SHEET_URL+"&box="+encodeURIComponent(S.boxId);
-  const cv=document.getElementById("qr-cv");
-  let qrSrc="https://api.qrserver.com/v1/create-qr-code/?size=64x64&data="+encodeURIComponent(qrUrl);
-  try{const d=cv.toDataURL();if(d&&d.length>100)qrSrc=d;}catch(e){}
-  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Label ${S.boxId}</title>
-<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;background:#f0f0f0;display:flex;flex-direction:column;align-items:center;padding:2rem;gap:1.5rem}.inst{background:#fff;border-radius:10px;padding:1rem 1.5rem;max-width:500px;width:100%;font-size:13px;color:#444;line-height:1.6;border:1px solid #e0e0e0}.inst strong{color:#111}.inst ol{margin:.5rem 0 0 1.25rem}.wrap{background:#fff;border-radius:12px;padding:1.5rem;box-shadow:0 2px 12px rgba(0,0,0,.1);border:1px solid #e0e0e0}.label{width:384px;height:230px;background:#fff;border-radius:6px;overflow:hidden;border:1px solid #bbb;display:flex;flex-direction:column}.stripe{height:10px;background:${t.stripe};flex-shrink:0}.body{display:flex;flex:1;padding:10px 12px;gap:10px;min-height:0}.main{flex:1;display:flex;flex-direction:column;justify-content:space-between;min-width:0}.id{font-family:monospace;font-size:34px;font-weight:bold;line-height:1;color:#111}.badge{display:inline-block;margin-top:4px;background:${t.bb};color:${t.bt};font-size:8px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:3px}.desc{font-size:10.5px;font-weight:bold;color:#222;line-height:1.3;margin-top:5px}.items{font-family:monospace;font-size:7px;color:#666;line-height:1.55;margin-top:4px}.bottom{margin-top:auto;padding-top:5px;border-top:.5px solid #e8e8e8;display:flex;justify-content:space-between;align-items:flex-end}.dest{font-size:8.5px;font-weight:bold;color:#333;text-transform:uppercase;letter-spacing:.04em}.tag{font-family:monospace;font-size:7px;color:#aaa}.frag{font-size:7px;color:#cc3333;font-family:monospace}.div{width:1px;background:#eee;flex-shrink:0;align-self:stretch;margin:0 2px}.qrs{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;flex-shrink:0;width:76px}.qrs img{width:64px;height:64px;border:1px solid #e5e5e5;border-radius:4px;display:block}.qrs p{font-size:7px;color:#999;text-align:center;line-height:1.3}@media print{body{background:#fff;padding:0}.inst{display:none}.wrap{background:none;border:none;box-shadow:none;padding:0}.label{width:4in;height:2.4in;border-radius:0;border:1px solid #999}.id{font-size:36pt}.badge{font-size:7pt}.desc{font-size:9pt}.items div{font-size:6pt;line-height:1.5}.dest{font-size:7.5pt}.tag,.frag{font-size:6pt}.qrs img{width:.7in;height:.7in}.qrs{width:.85in}}</style></head><body>
-<div class="inst"><strong>Printing label ${S.boxId}:</strong><ol><li>Load label printer: 4×2.4 in (Brother DK-11204) or continuous roll</li><li>Press <strong>Ctrl+P</strong> (Win) or <strong>⌘+P</strong> (Mac)</li><li>Paper size: <strong>4×2.4 inches</strong> · Scale: <strong>100% — do not fit to page</strong></li><li>Print · Stick on at least 2 sides of the box</li></ol></div>
-<div class="wrap"><div class="label"><div class="stripe"></div><div class="body"><div class="main"><div><div class="id">${S.boxId}</div><div class="badge">${t.lbl}</div><div class="desc">${S.desc||"—"}</div><div class="items">${lines.map(l=>`<div>${l}</div>`).join("")}</div></div><div class="bottom"><div><div class="dest">→ ${S.dest}</div><div class="tag">Aachen · Jun 2026 · ${active.length} items</div></div>${S.fragile?'<div class="frag">⚠ fragile</div>':""}</div></div><div class="div"></div><div class="qrs"><img src="${qrSrc}" alt="QR"><p>Scan for<br>inventory</p></div></div></div></div>
-</body></html>`;
-  const blob=new Blob([html],{type:"text/html"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="label_"+S.boxId+".html";a.click();URL.revokeObjectURL(a.href);
+/* ── Download label as PNG ── */
+async function downloadLabel(){
+  toast("Rendering label…");
+  try{
+    const dataUrl = await renderLabelToCanvas(1);
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = "label_" + String(S.boxId).replace(/[^a-zA-Z0-9-]/g,"_") + ".png";
+    a.click();
+  }catch(e){
+    toast("Download failed: " + (e.message||e));
+  }
 }
 
 /* ── Print label via Web Share → Brother iPrint&Label ── */
@@ -1721,143 +2070,321 @@ async function printLabel(copies){
 }
 
 async function renderLabelToCanvas(copies){
-  const t = TIER[S.tier];
-  const active = S.items.filter((_,i)=>!S.removed.includes(i));
-  const lines = chunkItems(active, 72);
-
-  // Label dimensions: 696 x 418px (at 174dpi = 4x2.4 inch)
-  const LW = 696, LH = 418;
-  const GAP = 16;
+  // v20: 4×6 portrait at 203 DPI = 812 × 1218 pixels
+  const LW = 812, LH = 1218;
+  const MARGIN = 24;       // inter-label gutter
+  const PAD = 24;          // outer page padding
   const cols = copies === 4 ? 2 : 1;
   const rows = copies === 4 ? 2 : copies;
-  const CW = LW * cols + GAP * (cols - 1);
-  const CH = LH * rows + GAP * (rows - 1);
+  const CW = LW * cols + MARGIN * (cols - 1);
+  const CH = LH * rows + MARGIN * (rows - 1);
 
   const cv = document.createElement("canvas");
-  cv.width = CW + 48;
-  cv.height = CH + 48;
+  cv.width = CW + PAD*2;
+  cv.height = CH + PAD*2;
   const ctx = cv.getContext("2d");
 
   // White background
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, cv.width, cv.height);
 
-  for(let ci = 0; ci < copies; ci++){
-    const col = copies === 4 ? ci % 2 : 0;
-    const row = copies === 4 ? Math.floor(ci / 2) : ci;
-    const ox = 24 + col * (LW + GAP);
-    const oy = 24 + row * (LH + GAP);
-    drawLabelOnCanvas(ctx, ox, oy, LW, LH, t, active, lines);
-  }
-
-  // Add QR code to each label
+  // Pre-fetch QR so we can embed it when drawing each label
   const qrUrl = SHEET_URL + "&box=" + encodeURIComponent(S.boxId);
-  const qrImg = await loadImage("https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=" + encodeURIComponent(qrUrl));
+  const qrImg = await loadImage("https://api.qrserver.com/v1/create-qr-code/?size=200x200&format=png&data=" + encodeURIComponent(qrUrl));
 
   for(let ci = 0; ci < copies; ci++){
     const col = copies === 4 ? ci % 2 : 0;
     const row = copies === 4 ? Math.floor(ci / 2) : ci;
-    const ox = 24 + col * (LW + GAP);
-    const oy = 24 + row * (LH + GAP);
-    if(qrImg) ctx.drawImage(qrImg, ox + LW - 130, oy + LH - 140, 110, 110);
+    const ox = PAD + col * (LW + MARGIN);
+    const oy = PAD + row * (LH + MARGIN);
+    drawLabelOnCanvas(ctx, ox, oy, LW, LH, qrImg);
   }
 
   return cv.toDataURL("image/png");
 }
 
-function drawLabelOnCanvas(ctx, ox, oy, W, H, t, active, lines){
-  // Border
-  ctx.strokeStyle = "#cccccc";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.roundRect(ox, oy, W, H, 8);
-  ctx.stroke();
+// Draw one 4×6 portrait label at (ox, oy) with dimensions LW × LH.
+// Pure black-and-white output — matches Nelko PL70e thermal printer.
+function drawLabelOnCanvas(ctx, ox, oy, LW, LH, qrImg){
+  const t = TIER[S.tier] || TIER.A;
+  const active = S.items.filter((_,i)=>!S.removed.includes(i));
+  const isItem = S.mode === "item";
 
-  // Clip to label bounds
-  ctx.save();
-  ctx.beginPath();
-  ctx.roundRect(ox, oy, W, H, 8);
-  ctx.clip();
-
-  // White fill
+  // Clear label area (white)
   ctx.fillStyle = "#ffffff";
-  ctx.fillRect(ox, oy, W, H);
+  ctx.fillRect(ox, oy, LW, LH);
 
-  // Tier stripe
-  ctx.fillStyle = t.stripe;
-  ctx.fillRect(ox, oy, W, 16);
+  // Thin label border
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(ox+1, oy+1, LW-2, LH-2);
 
-  // Box ID
-  ctx.fillStyle = "#111111";
-  ctx.font = "bold 72px 'Courier New', monospace";
-  ctx.fillText(S.boxId, ox + 20, oy + 90);
+  const PAD = 28; // inner content padding
+  let y = oy + PAD + 10; // running y cursor
 
-  // Tier badge
-  const badgeX = ox + 20, badgeY = oy + 102;
-  const badgeW = 220, badgeH = 24;
-  ctx.fillStyle = t.bb;
-  ctx.beginPath();
-  ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 4);
-  ctx.fill();
-  ctx.fillStyle = t.bt;
-  ctx.font = "bold 11px Arial, sans-serif";
-  ctx.fillText(t.lbl.toUpperCase(), badgeX + 8, badgeY + 16);
+  // ── HEADER ROW ────────────────────────────────────────────
+  // Left: "BOX" tag + big number
+  ctx.fillStyle = "#555555";
+  ctx.font = "500 22px Inter, Arial, sans-serif";
+  ctx.fillText("BOX", ox + PAD, y + 14);
+  ctx.fillStyle = "#000000";
+  ctx.font = "700 160px Inter, Arial, sans-serif";
+  ctx.fillText(S.boxId, ox + PAD - 6, y + 140);
 
-  // Description
-  ctx.fillStyle = "#222222";
-  ctx.font = "bold 18px Arial, sans-serif";
-  ctx.fillText(S.desc || "—", ox + 20, oy + 152);
-
-  // Items
-  ctx.fillStyle = "#666666";
-  ctx.font = "12px 'Courier New', monospace";
-  lines.slice(0, 6).forEach((line, i) => {
-    ctx.fillText(line, ox + 20, oy + 178 + i * 18);
-  });
-
-  // Bottom bar
-  ctx.strokeStyle = "#e8e8e8";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(ox + 16, oy + H - 44);
-  ctx.lineTo(ox + W - 16, oy + H - 44);
-  ctx.stroke();
-
-  // Destination
-  ctx.fillStyle = "#333333";
-  ctx.font = "bold 13px Arial, sans-serif";
-  ctx.fillText("→ " + S.dest.toUpperCase(), ox + 20, oy + H - 26);
-
-  // Move tag
-  ctx.fillStyle = "#aaaaaa";
-  ctx.font = "11px 'Courier New', monospace";
-  const countStr = active.length + " items · Aachen · Jun 2026" + (S.fragile ? " · ⚠ FRAGILE" : "");
-  ctx.fillText(countStr, ox + 20, oy + H - 10);
-
-  // QR placeholder box
-  ctx.strokeStyle = "#e5e5e5";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(ox + W - 130, oy + H - 140, 110, 110);
-  ctx.fillStyle = "#f5f5f5";
-  ctx.fillRect(ox + W - 130, oy + H - 140, 110, 110);
-
-  // QR hint text
-  ctx.fillStyle = "#999999";
-  ctx.font = "10px Arial, sans-serif";
+  // Right: tier badge (solid black box, white text)
+  const tbW = 230, tbH = 180;
+  const tbX = ox + LW - PAD - tbW;
+  const tbY = y + 6;
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(tbX, tbY, tbW, tbH);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "700 130px Inter, Arial, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("Scan for", ox + W - 75, oy + H - 72);
-  ctx.fillText("inventory", ox + W - 75, oy + H - 58);
+  ctx.fillText(S.tier, tbX + tbW/2, tbY + 128);
+  ctx.font = "500 22px Inter, Arial, sans-serif";
+  ctx.fillText(t.sub1, tbX + tbW/2, tbY + 154);
+  ctx.fillText(t.sub2, tbX + tbW/2, tbY + 176);
   ctx.textAlign = "left";
 
-  // Divider line before QR
-  ctx.strokeStyle = "#eeeeee";
-  ctx.lineWidth = 1;
+  y += 210;
+
+  // ── SUMMARY (bold, centered) ─────────────────────────────
+  ctx.fillStyle = "#000000";
+  ctx.font = "700 38px Inter, Arial, sans-serif";
+  ctx.textAlign = "center";
+  const summary = S.shortSummary || S.desc || "—";
+  fillTextWrapped(ctx, summary, ox + LW/2, y + 30, LW - PAD*2 - 40, 44, 1);
+  y += 60;
+  ctx.textAlign = "left";
+
+  // ── PACKED FROM BAND (solid black, white text) ───────────
+  const bandH = 60;
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(ox + PAD, y, LW - PAD*2, bandH);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "500 36px Inter, Arial, sans-serif";
+  ctx.textAlign = "center";
+  const originText = [S.originHome, S.originRoom].filter(Boolean).join(" · ").toUpperCase() || "—";
+  const textY = y + 42;
+  fillTextWrapped(ctx, originText, ox + LW/2, textY, LW - PAD*2 - 20, 40, 1);
+  ctx.textAlign = "left";
+  y += bandH + 18;
+
+  // ── FRAGILE STRIPE (conditional) ─────────────────────────
+  if(S.fragile){
+    const stH = 76;
+    const stX = ox + PAD;
+    const stW = LW - PAD*2;
+    // Outer border
+    ctx.strokeStyle = "#000000";
+    ctx.lineWidth = 4;
+    ctx.strokeRect(stX+2, y+2, stW-4, stH-4);
+
+    // Hatched flanks
+    const flankW = 90;
+    drawHatchRect(ctx, stX+2, y+2, flankW, stH-4);
+    drawHatchRect(ctx, stX+stW-flankW-2, y+2, flankW, stH-4);
+
+    // Triangle icons in white circles
+    drawCautionIcon(ctx, stX + flankW/2, y + stH/2, 32);
+    drawCautionIcon(ctx, stX + stW - flankW/2, y + stH/2, 32);
+
+    // FRAGILE + HANDLE WITH CARE centered between flanks
+    ctx.fillStyle = "#000000";
+    ctx.textAlign = "center";
+    ctx.font = "700 34px Inter, Arial, sans-serif";
+    ctx.fillText("FRAGILE", stX + stW/2, y + 36);
+    ctx.font = "400 20px Inter, Arial, sans-serif";
+    ctx.fillText("HANDLE WITH CARE", stX + stW/2, y + 60);
+    ctx.textAlign = "left";
+    y += stH + 14;
+  }
+
+  // ── CONTENTS ─────────────────────────────────────────────
+  ctx.fillStyle = "#555555";
+  ctx.font = "500 22px Inter, Arial, sans-serif";
+  const contentsLabel = "CONTENTS (" + (isItem ? 1 : active.length) + " ITEM" + ((isItem?1:active.length)===1?"":"S") + ")";
+  ctx.fillText(contentsLabel, ox + PAD, y + 18);
+  y += 30;
+
+  // Two columns
+  const MAX_SHOW = 8;
+  const itemsToShow = isItem ? [S.singleCategory || "Item"] : active.slice(0, MAX_SHOW).map(String);
+  const extra = isItem ? 0 : Math.max(0, active.length - MAX_SHOW);
+  if(extra > 0) itemsToShow.push("+" + extra + " more items");
+  const colW = (LW - PAD*2 - 30) / 2;
+  const colX1 = ox + PAD;
+  const colX2 = ox + PAD + colW + 30;
+  const rowH = 32;
+  ctx.fillStyle = "#000000";
+  ctx.font = "400 24px Inter, Arial, sans-serif";
+  const half = Math.ceil(itemsToShow.length / 2);
+  const contentsStartY = y + 28;
+  for(let i = 0; i < itemsToShow.length; i++){
+    const inLeft = i < half;
+    const colX = inLeft ? colX1 : colX2;
+    const rIdx = inLeft ? i : (i - half);
+    const text = "· " + itemsToShow[i];
+    // Truncate if too wide
+    const maxW = colW;
+    ctx.fillText(truncateText(ctx, text, maxW), colX, contentsStartY + rIdx * rowH);
+  }
+  y = contentsStartY + half * rowH + 8;
+
+  // ── SIZE / WEIGHT ROW ────────────────────────────────────
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(ox + W - 142, oy + H - 152);
-  ctx.lineTo(ox + W - 142, oy + H - 16);
+  ctx.moveTo(ox + PAD, y);
+  ctx.lineTo(ox + LW - PAD, y);
   ctx.stroke();
 
+  const sizeDisplay = (S.boxSize || "Medium").toUpperCase();
+  const weightDisplay = S.weightKg != null ? (Number(S.weightKg).toFixed(1) + " kg") : "—";
+  ctx.fillStyle = "#555555";
+  ctx.font = "500 22px Inter, Arial, sans-serif";
+  ctx.fillText("SIZE", ox + PAD, y + 30);
+  ctx.fillStyle = "#000000";
+  ctx.font = "700 26px Inter, Arial, sans-serif";
+  ctx.fillText(isItem ? "—" : sizeDisplay, ox + PAD + 60, y + 30);
+
+  ctx.fillStyle = "#555555";
+  ctx.font = "500 22px Inter, Arial, sans-serif";
+  ctx.textAlign = "right";
+  ctx.fillText("WEIGHT", ox + LW - PAD - 120, y + 30);
+  ctx.fillStyle = "#000000";
+  ctx.font = "700 28px Inter, Arial, sans-serif";
+  ctx.fillText(weightDisplay, ox + LW - PAD, y + 30);
+  ctx.textAlign = "left";
+  y += 50;
+
+  // ── QR + PACKED BY ───────────────────────────────────────
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(ox + PAD, y);
+  ctx.lineTo(ox + LW - PAD, y);
+  ctx.stroke();
+
+  // QR on left
+  const QR_SIZE = 150;
+  if(qrImg) ctx.drawImage(qrImg, ox + PAD, y + 14, QR_SIZE, QR_SIZE);
+  else {
+    ctx.strokeStyle = "#cccccc";
+    ctx.strokeRect(ox + PAD, y + 14, QR_SIZE, QR_SIZE);
+  }
+
+  // Packed-by on right
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#555555";
+  ctx.font = "400 22px Inter, Arial, sans-serif";
+  ctx.fillText("Packed by", ox + LW - PAD, y + 48);
+  ctx.fillStyle = "#000000";
+  ctx.font = "700 28px Inter, Arial, sans-serif";
+  ctx.fillText(S.packedBy || "—", ox + LW - PAD, y + 82);
+  ctx.fillStyle = "#555555";
+  ctx.font = "400 20px Inter, Arial, sans-serif";
+  ctx.fillText(formatTimestamp(S.packedAt) || "—", ox + LW - PAD, y + 112);
+  ctx.textAlign = "left";
+  y += QR_SIZE + 22;
+
+  // ── DELIVER TO footer ────────────────────────────────────
+  ctx.fillStyle = "#555555";
+  ctx.font = "500 22px Inter, Arial, sans-serif";
+  ctx.fillText("DELIVER TO", ox + PAD, y + 20);
+  ctx.fillStyle = "#000000";
+  ctx.font = "400 22px Inter, Arial, sans-serif";
+  ctx.fillText(
+    DELIVER_TO.name + " · " + DELIVER_TO.addr1 + " · " + DELIVER_TO.addr2,
+    ox + PAD, y + 50
+  );
+}
+
+// Wraps text into up to `maxLines` lines, centered at x. Appends "…" if truncated.
+function fillTextWrapped(ctx, text, x, y, maxWidth, lineHeight, maxLines){
+  const words = String(text).split(/\s+/);
+  const lines = [];
+  let current = "";
+  let didTruncate = false;
+  for(let i = 0; i < words.length; i++){
+    const w = words[i];
+    const trial = current ? current + " " + w : w;
+    if(ctx.measureText(trial).width > maxWidth && current){
+      // Line full — start a new one
+      if(lines.length + 1 >= maxLines){
+        // Can't start another line without exceeding maxLines.
+        // Finalize `current` and mark truncation.
+        lines.push(current);
+        didTruncate = i < words.length; // more words left
+        current = "";
+        break;
+      }
+      lines.push(current);
+      current = w;
+    } else {
+      current = trial;
+    }
+  }
+  if(current) lines.push(current);
+  if(didTruncate && lines.length > 0){
+    let last = lines[lines.length-1];
+    while(ctx.measureText(last + "…").width > maxWidth && last.length > 1){
+      last = last.slice(0, -1);
+    }
+    lines[lines.length-1] = last + "…";
+  }
+  lines.forEach((ln, i) => ctx.fillText(ln, x, y + i * lineHeight));
+}
+
+// Truncate a single line of text to fit maxWidth, appending "…" if cut.
+function truncateText(ctx, text, maxWidth){
+  if(ctx.measureText(text).width <= maxWidth) return text;
+  let t = text;
+  while(t.length > 1 && ctx.measureText(t + "…").width > maxWidth){
+    t = t.slice(0, -1);
+  }
+  return t + "…";
+}
+
+// Draw a hatched rectangle (45° black stripes alternating with white).
+function drawHatchRect(ctx, x, y, w, h){
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 8;
+  const step = 16;
+  for(let i = -h; i < w + h; i += step){
+    ctx.beginPath();
+    ctx.moveTo(x + i, y);
+    ctx.lineTo(x + i + h, y + h);
+    ctx.stroke();
+  }
   ctx.restore();
+}
+
+// Draw a caution triangle icon centered on (cx, cy) with approx radius r.
+function drawCautionIcon(ctx, cx, cy, r){
+  // White circle behind the triangle
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  // Triangle
+  ctx.fillStyle = "#000000";
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r*0.55);
+  ctx.lineTo(cx + r*0.65, cy + r*0.5);
+  ctx.lineTo(cx - r*0.65, cy + r*0.5);
+  ctx.closePath();
+  ctx.fill();
+  // Exclamation mark (white)
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(cx - 2, cy - r*0.2, 4, r*0.45);
+  ctx.fillRect(cx - 2, cy + r*0.3, 4, 5);
 }
 
 function loadImage(src){
@@ -1904,14 +2431,21 @@ function closeLightbox(){
   if(el)el.remove();
 }
 
-/* ── Next box ── */
+/* ── Next box — preserves session-level defaults (home, room, size, packedBy, mode, tier) ── */
 function nextBox(){
-  S={...S,step:0,mode:S.mode,tier:"C",dest:"",desc:"",fragile:false,
-     packedBy:S.packedBy,
-     photos:[],items:[],removed:[],
-     itemCategories:{},itemValues:{},itemValueSources:{},
-     singleValue:0,singleValueSource:"",singleCategory:"Household",singleDimensions:"",
-     clarifications:[],clarifyIdx:0,boxId:"",sheetResult:"",editingItem:null,driveFolderUrl:"",driveError:""};
+  S = {
+    ...S,
+    step:0,
+    // Preserved: mode, tier, packedBy, originHome, originRoom, boxSize, originRoomsByHome
+    dest:"", desc:"", shortSummary:"", fragile:false,
+    photos:[], items:[], removed:[],
+    itemCategories:{}, itemValues:{}, itemValueSources:{},
+    singleValue:0, singleValueSource:"", singleCategory:"Household", singleDimensions:"",
+    clarifications:[], clarifyIdx:0,
+    boxId:"", boxNumber:null, packedAt:null,
+    sheetResult:"", editingItem:null, driveFolderUrl:"", driveError:"",
+    weightKg:null,
+  };
   r();
 }
 
@@ -1924,6 +2458,7 @@ function toast(msg){
 
 r();
 loadRegistryFromSupabase();
+loadOriginRooms();
 </script>
 </body>
 </html>

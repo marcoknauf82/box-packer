@@ -14,6 +14,85 @@ Mark open bugs under **Known issues** at the bottom.
 
 ---
 
+## v20 — April 2026
+
+**Nelko label rewrite, 5 tiers, new data model for the April packing sprint**
+
+*Ships with a required SQL migration — run before deploying the HTML. Wipes test data from `boxes`, `box_items`, `standalone_items`. Adds `box_number`, `short_summary`, `origin_home`, `origin_room`, `box_size`, `weight_kg` columns; A/B/C tier check updated to A–E; new `origin_rooms` table seeded with starter rooms per home.*
+
+**Label**
+
+- Label format switched from 4×2.4 landscape (Brother DK-11204) to **4×6 portrait monochrome** (Nelko PL70e thermal, 203 DPI → 812 × 1218 px canvas). Pure B&W — no colour on the printed label.
+- Canvas renderer (`drawLabelOnCanvas`) is a clean rewrite, not a patched version of v19. Layout top-to-bottom: header (big box number + solid-black tier badge with action-oriented subtitle) → centered bold short summary → solid-black "packed from" band → optional fragile stripe with hatched flanks + caution-triangle icons → 2-column contents list (up to 8 items + "+N more") → size / weight row → QR + packed-by footer → small-print deliver-to address.
+- Tier badge drops the word "TIER" and shows the letter huge (130px on canvas) plus a two-line action-oriented subtitle ("UNPACK ON / ARRIVAL" etc.) so the label is legible from across the garage even without colour.
+- Fragile stripe renders only when `S.fragile` is true. Hatch pattern is 45° alternating black/white stripes on the flanks; caution icons are white circles with black triangles.
+- QR code fetched at 200×200 from api.qrserver.com, drawn at 150×150 on the label. Contains the Supabase lookup URL (`...&box=...`).
+- Deliver-to address is app-configured (`DELIVER_TO` constant) — Marco Knauf, Am Beverbach 2, 52066 Aachen, Germany.
+- Removed the old HTML-download label variant. "Download label" now produces a PNG from the same canvas renderer.
+
+**Tier system**
+
+- Replaced 3-tier A/B/C with **5-tier A–E**, labels redefined to match the move's actual unpacking chronology:
+  - A · Unpack on arrival
+  - B · Unpack first months
+  - C · Post-rental 2027+
+  - D · Long-term storage
+  - E · Karting — early 2027
+- Tier picker in Step 0 is now a 5-column monochrome grid. Name of the selected tier shown below the grid.
+- Registry counters (menu, top bar, Box Registry, in-flow registry panel) all show the 5-tier breakdown.
+
+**Box numbering**
+
+- Box IDs changed from `A-14` format (per-tier `box_code` text) to **globally unique integer `box_number`** (1, 2, 3…). Natural chronological/sort order; reclassifying a box never changes its number.
+- `box_code` column retained nullable for rollback safety; v20 does not write to it.
+- New `getNextBoxNumber()` queries `MAX(box_number)` DESC with LIMIT 1 (instead of fetching all rows and scanning).
+- Standalone items keep `I-NN` text format (visually distinct from box numbers in the registry).
+
+**New packing-flow fields**
+
+- **Short summary** (≤5 words) — appears prominently on the label, editable on the review screen. AI prompt now asks for `shortSummary` + `desc` separately so the AI-generated summary starts right for label use and the longer description is kept for records.
+- **Origin home** (Chicago Home / Holiday Home) — session-level picker, one click per home switch.
+- **Origin room** — chip picker per home (predefined + extensible). Rooms persist to new `origin_rooms` table. Free-text "Add room" input persists to DB and local cache.
+- **Box size** (Small / Medium / Large) — required, needed for EOS Form #1180 PDF export in v21.
+- **Weight** (kg, XX.X format) — optional. Present on both Step 0 and review.
+- **Destination room** — now optional (was required in v19). Kept as metadata for future unpacking-mode workflows; not printed on the label.
+- **Packed-at timestamp** — ISO timestamp set at confirm time, shown as "Apr 19, 2026 · 14:32" on the label.
+
+**Session defaults preserved across boxes**
+
+- `nextBox()` and the main-menu "Pack a Box" button now preserve `mode`, `tier`, `originHome`, `originRoom`, `boxSize`, `packedBy` across successive boxes. Per-box fields (photos, items, descriptions, fragile flag, weight, etc.) are cleared every time. One click per home-switch instead of per-box.
+
+**Save path hardening**
+
+- `saveBoxToSupabase` now returns a boolean; `confirmBox` awaits the result and surfaces failures as a new `supa-fail` status bar on the label screen (red — data NOT saved).
+- Confirm button disables on click entry to prevent double-submission.
+- Fixed a pre-existing v19 bug in the total-cents calculation (`active.reduce((sum,_,i) => ... S.items.indexOf(active[i] === active[i] ? ... : active[i]) ...)` — the `===` tautology made the ternary a no-op and `indexOf` always found the first matching description, corrupting totals when two items had identical descriptions). New code iterates `S.items` by original index.
+- Fixed another pre-existing v19 crash in `writeToSheet` where `t.lbl.split(" · ")[1]` threw after `lbl` was removed from the TIER map; now uses `t.name`.
+- Registry loader (`loadRegistryFromSupabase`) selects `box_number, box_code, short_summary` and prefers `box_number` for display; falls back to `box_code` for any legacy row.
+
+**Sheets integration updates**
+
+- Sheet row now has 14 columns (was 12): adds Short Summary, Packed From, Size, Weight. Sheet column-count format updated accordingly.
+- Sheets write still fires from `confirmBox` if `googleToken` is present, but non-blocking — Supabase save is the hard requirement, Sheets is best-effort.
+
+**UI updates**
+
+- Top bar subtitle: "Aachen move · v20"
+- Label preview in Step 4 is now the full 4×6 portrait design in monochrome (matches printed output exactly modulo DPI).
+- Box detail view (`vBoxDetail`) shows origin home/room, box size, weight alongside the existing tier/fragile/packed-by metadata.
+- Print section renamed from "Brother QL" to "Nelko PL70e".
+
+**Other**
+
+- `MOVE_ID` constant hoisted to the top of the script (was declared below its first use in v20, which would have been a TDZ reference error).
+- `loadOriginRooms()` called alongside `loadRegistryFromSupabase()` at startup.
+- `formatTimestamp()` helper added for label + detail view.
+- Text-wrapping helper (`fillTextWrapped`) simplified to avoid a subtle word-indexOf bug on the last line when words repeated.
+
+---
+
+
+
 ## v19 — March 2026
 
 **Visual restyle — new light theme with Inter font and yellow/black accent**
