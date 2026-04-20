@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Aachen Move — Box Packer v20</title>
+<title>Aachen Move — Box Packer v20.1.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -124,8 +124,8 @@ input,select,textarea{font-family:inherit}
 .v20-hd-tier{background:#000;color:#fff;padding:5px 12px 7px;display:flex;flex-direction:column;align-items:center;min-width:105px}
 .v20-hd-tierletter{font-size:54px;font-weight:700;line-height:1}
 .v20-hd-tiersub{font-size:9px;margin-top:2px;letter-spacing:.5px;text-align:center;line-height:1.15}
-.v20-summary{text-align:center;font-size:17px;font-weight:700;letter-spacing:.3px;color:#000;line-height:1.2}
-.v20-band{background:#000;color:#fff;padding:8px 14px;text-align:center;font-size:17px;font-weight:600;letter-spacing:1px;line-height:1.15}
+.v20-summary{text-align:center;font-size:22px;font-weight:700;letter-spacing:.3px;color:#000;line-height:1.2}
+.v20-band{background:#000;color:#fff;padding:6px 14px;text-align:center;font-size:14px;font-weight:500;letter-spacing:1px;line-height:1.15}
 .v20-fragile{border:2px solid #000;display:flex;align-items:stretch}
 .v20-frag-side{width:44px;background:repeating-linear-gradient(45deg,#000 0 6px,#fff 6px 12px);display:flex;align-items:center;justify-content:center}
 .v20-frag-tri{background:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#000}
@@ -143,6 +143,7 @@ input,select,textarea{font-family:inherit}
 .v20-foot-right{text-align:right;font-size:11px;color:#555;line-height:1.5}
 .v20-foot-sm{color:#555}
 .v20-foot-who{color:#000;font-weight:700;font-size:13px}
+.v20-foot-owners{color:#000;font-weight:600;font-size:12px;margin-bottom:3px}
 .v20-deliver{font-size:11px;line-height:1.35;color:#000}
 .v20-deliver .v20-sw-lbl{display:block;margin-bottom:1px}
 
@@ -185,7 +186,7 @@ input,select,textarea{font-family:inherit}
 <body>
 <div class="app">
   <div class="top-bar">
-    <div><div class="top-title">Box Packer</div><div class="top-sub">Aachen move · v20</div></div>
+    <div><div class="top-title">Box Packer</div><div class="top-sub">Aachen move · v20.1.1</div></div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
       <div id="top-stats" style="font-size:12px;color:var(--muted);text-align:right"></div>
       <div id="auth-indicator"></div>
@@ -241,6 +242,8 @@ const DELIVER_TO = {
   addr2: "52066 Aachen, Germany",
 };
 const ORIGIN_HOMES = ["Chicago Home","Holiday Home"];
+const OWNERS_LIST = ["Marco","Geetha","Arun","Maya"];
+const SESSION_KEY = "boxpacker_session_v201";
 
 const counters = {A:0,B:0,C:1};
 let googleToken = null;
@@ -252,6 +255,8 @@ let S = {
   packedBy:"Marco",
   // v20: new fields
   weightKg:null, boxSize:"Medium", originHome:"Chicago Home", originRoom:"",
+  // v20.1: owners multi-select (contents belong to)
+  owners:[],
   // End v20 new fields
   photos:[], items:[], removed:[], itemCategories:{}, itemValues:{}, itemValueSources:{},
   singleValue:0, singleValueSource:"", singleCategory:"Household", singleDimensions:"",
@@ -268,6 +273,56 @@ let S = {
 
 function getApiKey(){return localStorage.getItem("anthropic_key")||"";}
 function saveApiKey(k){localStorage.setItem("anthropic_key",k);}
+
+/* ── v20.1: session persistence.
+   Survives app-switch / tab-suspend by snapshotting packing state to localStorage.
+   Auto-resumes on load if user was mid-flow (step 0-2 with content). ── */
+
+function saveSession(){
+  try {
+    // Only persist active packing sessions, not menu or registry browsing
+    if(S.screen !== "pack") return;
+    // Don't bother saving empty Step 0
+    const hasProgress = S.step > 0 || S.desc || S.shortSummary || S.photos.length ||
+                        S.items.length || S.originRoom;
+    if(!hasProgress) return;
+    // Build a snapshot without ephemeral / re-fetchable fields
+    const snap = JSON.parse(JSON.stringify({
+      screen: S.screen, step: S.step, mode: S.mode, tier: S.tier,
+      dest: S.dest, desc: S.desc, shortSummary: S.shortSummary, fragile: S.fragile,
+      packedBy: S.packedBy, weightKg: S.weightKg, boxSize: S.boxSize,
+      originHome: S.originHome, originRoom: S.originRoom, owners: S.owners,
+      photos: S.photos, items: S.items, removed: S.removed,
+      itemCategories: S.itemCategories, itemValues: S.itemValues,
+      itemValueSources: S.itemValueSources,
+      singleValue: S.singleValue, singleValueSource: S.singleValueSource,
+      singleCategory: S.singleCategory, singleDimensions: S.singleDimensions,
+      clarifications: S.clarifications, clarifyIdx: S.clarifyIdx,
+    }));
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(snap));
+    } catch(qerr) {
+      // Quota exceeded (photos too big). Save again without photos.
+      console.warn("Session quota exceeded — saving without photos");
+      snap.photos = [];
+      snap._photosLost = true;
+      try { localStorage.setItem(SESSION_KEY, JSON.stringify(snap)); }
+      catch(e2) { console.error("Session save still failing:", e2); }
+    }
+  } catch(e) { console.error("saveSession error:", e); }
+}
+
+function loadSession(){
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { console.error("loadSession error:", e); return null; }
+}
+
+function clearSession(){
+  try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
+}
 
 const root = document.getElementById("root");
 function q(s){return document.querySelector(s);}
@@ -303,7 +358,7 @@ function nav(){
     `<div class="step-dot ${i<S.step?"done":i===S.step?"active":""}"></div>`
   ).join("")+"</div>";
 }
-function r(){root.innerHTML=view();bind();updateTopStats();}
+function r(){root.innerHTML=view();bind();updateTopStats();saveSession();}
 function view(){
   if(S.screen === "menu") return vMenu();
   if(S.screen === "registry") return vRegistryBrowser();
@@ -423,6 +478,7 @@ async function loadBoxDetail(boxId){
         driveUrl: data.drive_folder_url,
         weightKg: data.weight_kg,
         originHome: data.origin_home, originRoom: data.origin_room,
+        owners: data.owners || "",
       };
       S.detailItems = [{
         description: data.description, category: data.category,
@@ -454,6 +510,7 @@ async function loadBoxDetail(boxId){
         driveUrl: box.drive_folder_url,
         weightKg: box.weight_kg, size: box.box_size,
         originHome: box.origin_home, originRoom: box.origin_room,
+        owners: box.owners || "",
       };
 
       // Load items inside this box
@@ -508,6 +565,7 @@ function vBoxDetail(){
       ${b.dest ? `<div><strong>To:</strong> ${esc(b.dest)}</div>` : ''}
       ${b.size ? `<div>Size: ${esc(b.size)}</div>` : ''}
       ${weightDisplay ? `<div>Weight: ${weightDisplay}</div>` : ''}
+      ${b.owners ? `<div><strong>Belongs to:</strong> ${esc(b.owners)}</div>` : ''}
       ${b.packedBy ? `<div>Packed by ${esc(b.packedBy)}</div>` : ''}
       ${b.packedAt ? `<div>${esc(String(b.packedAt).slice(0,10))}</div>` : ''}
       ${totalValue ? `<div style="font-weight:600;color:var(--text)">$${parseFloat(totalValue).toLocaleString()}</div>` : ''}
@@ -684,6 +742,16 @@ function v0(){
         <button id="pb-geetha" style="padding:9px;border-radius:8px;border:1.5px solid ${S.packedBy==="Geetha"?"var(--text)":"var(--border)"};background:${S.packedBy==="Geetha"?"var(--text)":"var(--surface)"};color:${S.packedBy==="Geetha"?"#fff":"var(--text)"};font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Geetha</button>
       </div>
     </div>
+
+    <div style="margin-top:12px">
+      <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Contents belong to <span style="color:var(--faint);font-weight:400;text-transform:none;letter-spacing:0">(multi-select)</span></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+        ${OWNERS_LIST.map(owner=>{
+          const sel = (S.owners||[]).includes(owner);
+          return `<button type="button" class="owner-btn" data-owner="${esc(owner)}" style="padding:9px 4px;border-radius:8px;border:1.5px solid ${sel?"var(--text)":"var(--border)"};background:${sel?"var(--text)":"var(--surface)"};color:${sel?"#fff":"var(--text)"};font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">${esc(owner)}</button>`;
+        }).join("")}
+      </div>
+    </div>
   </div>
 
   <div style="margin-bottom:1rem">
@@ -712,10 +780,10 @@ function v1(){
       <rect x="4" y="10" width="32" height="24" rx="3"/><circle cx="20" cy="22" r="6"/>
       <path d="M14 10V8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/>
     </svg>
-    <div class="upload-text">Tap to take photo or choose file</div>
+    <div class="upload-text">Tap to take a photo or pick from gallery</div>
     <div class="upload-sub">Up to 4 images · JPG or PNG</div>
   </div>`}
-  <input type="file" id="file-input" accept="image/*" multiple capture="environment" style="display:none">
+  <input type="file" id="file-input" accept="image/*" multiple style="display:none">
   <div class="btn-row">
     <button class="btn btn-secondary" id="btn-back1" style="flex:1">Back</button>
     <button class="btn btn-primary" id="btn-analyze" style="flex:2" ${!hp?"disabled":""}>${S.mode==="item"?"Identify item":"Analyze photos"}</button>
@@ -776,8 +844,17 @@ function v2item(){
 function v2(){
   const active=S.items.filter((_,i)=>!S.removed.includes(i));
   const cur=S.clarifications[S.clarifyIdx];
+  // v20.1: total box value — sum over ORIGINAL indices of items not removed
+  let totalBox = 0;
+  S.items.forEach((_, idx) => {
+    if(!S.removed.includes(idx)) totalBox += (S.itemValues?.[idx] || 0);
+  });
   return`
   <div class="step-header"><div class="step-num">3</div><div class="step-title">Review items (${active.length})</div></div>
+  <div style="background:var(--text);color:#fff;padding:10px 14px;border-radius:10px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:baseline">
+    <div style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;opacity:.8">Box total estimated value</div>
+    <div style="font-size:20px;font-weight:700">$${totalBox.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
+  </div>
   ${S.photos.length>0?`<div style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px">
     ${S.photos.map((p,i)=>`
       <div onclick="openLightbox(${i})" style="position:relative;width:72px;height:72px;flex-shrink:0;border-radius:8px;overflow:hidden;cursor:pointer;border:0.5px solid var(--border)">
@@ -832,7 +909,7 @@ function v2(){
       <label>Full description</label>
       <input id="f-desc2" value="${esc(S.desc)}" placeholder="Longer description">
     </div>
-    <div class="meta-row" style="margin-bottom:0">
+    <div class="meta-row" style="margin-bottom:10px">
       <div class="field" style="margin:0">
         <label>Destination room (optional)</label>
         <input id="f-dest2" value="${esc(S.dest)}">
@@ -840,6 +917,15 @@ function v2(){
       <div class="field" style="margin:0">
         <label>Weight (kg)</label>
         <input id="f-weight2" type="number" step="0.1" min="0" value="${S.weightKg!=null?S.weightKg:""}" placeholder="e.g. 8.4">
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:0">
+      <label>Contents belong to <span style="color:var(--faint);font-weight:400;text-transform:none;letter-spacing:0">(multi-select)</span></label>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+        ${OWNERS_LIST.map(owner=>{
+          const sel = (S.owners||[]).includes(owner);
+          return `<button type="button" class="owner-btn" data-owner="${esc(owner)}" style="padding:8px 4px;border-radius:7px;border:1.5px solid ${sel?"var(--text)":"var(--border)"};background:${sel?"var(--text)":"var(--surface)"};color:${sel?"#fff":"var(--text)"};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${esc(owner)}</button>`;
+        }).join("")}
       </div>
     </div>
   </div>
@@ -925,6 +1011,7 @@ function v4(){
     <div class="v20-foot">
       <canvas id="qr-cv" width="60" height="60"></canvas>
       <div class="v20-foot-right">
+        ${(S.owners && S.owners.length) ? `<div class="v20-foot-sm">Belongs to</div><div class="v20-foot-owners">${esc(S.owners.join(" · "))}</div>` : ''}
         <div class="v20-foot-sm">Packed by</div>
         <div class="v20-foot-who">${esc(S.packedBy)}</div>
         <div class="v20-foot-sm">${esc(packedAtDisplay)}</div>
@@ -988,6 +1075,7 @@ function vreg(){
 function bind(){
   // Menu navigation (v20: preserves session defaults for home/room/size/packedBy)
   q("#menu-pack")?.addEventListener("click",()=>{
+    clearSession(); // v20.1: don't resume from saved state when user explicitly starts a new box
     S.screen="pack"; S.step=0;
     // Clear PER-BOX fields only — keep session defaults
     S.dest=""; S.desc=""; S.shortSummary=""; S.fragile=false;
@@ -998,6 +1086,7 @@ function bind(){
     S.boxId=""; S.boxNumber=null; S.packedAt=null;
     S.sheetResult=""; S.editingItem=null; S.driveFolderUrl=""; S.driveError="";
     S.weightKg=null;
+    S.owners=[]; // v20.1: owners are per-box, not session-level
     // Preserved across boxes: S.tier, S.originHome, S.originRoom, S.boxSize, S.packedBy, S.mode
     // But default tier to A if this is the very first box of the session
     if(!S.tier) S.tier = "A";
@@ -1035,6 +1124,17 @@ function bind(){
   });
   q("#pb-marco")?.addEventListener("click",()=>{S.packedBy="Marco";r();});
   q("#pb-geetha")?.addEventListener("click",()=>{S.packedBy="Geetha";r();});
+  // v20.1: owner multi-select (toggle each button)
+  qq(".owner-btn").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const name = el.dataset.owner;
+      if(!S.owners) S.owners = [];
+      const idx = S.owners.indexOf(name);
+      if(idx === -1) S.owners.push(name);
+      else S.owners.splice(idx, 1);
+      r();
+    });
+  });
   // Tier buttons (v20: A–E)
   TIER_KEYS.forEach(t=>q("#tb-"+t)?.addEventListener("click",()=>{S.tier=t;r();}));
   // Origin home picker
@@ -1104,6 +1204,7 @@ function bind(){
       // Came from reprint — go back to detail view
       loadBoxDetail(S.detailBox.id);
     } else {
+      clearSession(); // v20.1: user finished with this box
       S.screen="menu";S.step=0;r();
     }
   });
@@ -1164,7 +1265,7 @@ async function writeToSheet(){
     // Append data — include Drive folder URL in registry row
     const t = TIER[S.tier] || TIER.A;
     const photosCell = driveFolderUrl ? `=HYPERLINK("${driveFolderUrl}","📷 View photos")` : "";
-    // v20: include short_summary, origin, size, weight in the sheet row
+    // v20.1: include short_summary, origin, size, weight, owners in the sheet row (15 cols)
     const regRow=[[
       S.boxId, S.tier, t.name,
       S.shortSummary || "",
@@ -1173,6 +1274,7 @@ async function writeToSheet(){
       S.dest || "",
       S.boxSize || "",
       S.weightKg != null ? Number(S.weightKg).toFixed(1) : "",
+      (S.owners && S.owners.length) ? S.owners.join(", ") : "",
       active.length, S.fragile?"Yes":"No", today,
       SHEET_URL+"&box="+encodeURIComponent(S.boxId), photosCell
     ]];
@@ -1219,14 +1321,14 @@ async function ensureHeaders(){
   const hasHeader=vals.some(row=>row[0]==="Box ID");
   if(hasHeader) return;
   // Write headers to both sheets
-  const regHeaders=[["Box ID","Tier","Tier Name","Short Summary","Description","Packed From","Destination","Size","Weight (kg)","# Items","Fragile?","Date Packed","Inventory QR URL","Photos (Drive)"]];
+  const regHeaders=[["Box ID","Tier","Tier Name","Short Summary","Description","Packed From","Destination","Size","Weight (kg)","Belongs To","# Items","Fragile?","Date Packed","Inventory QR URL","Photos (Drive)"]];
   const itemHeaders=[["Box ID","Item #","Category","Item Description","Qty","Est. Value (USD)","Value Source","Notes"]];
   await sheetsUpdate(REGISTRY_SHEET,"A1",regHeaders);
   await sheetsUpdate(ITEMS_SHEET,"A1",itemHeaders);
   // Format header rows
   const regId=await getSheetId(REGISTRY_SHEET);
   const itemId=await getSheetId(ITEMS_SHEET);
-  await formatHeaderRow(regId,14);
+  await formatHeaderRow(regId,15);
   await formatHeaderRow(itemId,8);
   // Check/create Item Registry
   const irCheck=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/'${ITEM_REGISTRY_SHEET}'!A1`,
@@ -1572,6 +1674,7 @@ async function analyze(){
           ? `You are a moving inventory assistant. Analyze photos of a single item (furniture, appliance, or bulky object).
 Return ONLY a valid JSON object with these exact keys:
 - "desc": precise item description including brand, model, color, material if visible (e.g. "IKEA KALLAX 4x4 shelf unit, white")
+- "shortSummary": a very short label-friendly description, MAXIMUM 5 words, sentence case, no trailing punctuation. Example: "IKEA Kallax shelf". This prints in bold on the label.
 - "category": one of: Furniture, Appliance, Electronics, Clothing, Karting, Books, Kids / Toys, Art / Decor, Tools, Other
 - "value": estimated USD replacement value as a number (e.g. 150)
 - "valueSource": string explaining how value was estimated, e.g. "Current IKEA retail price", "Average used furniture market value", "Estimated based on brand and condition".
@@ -1612,6 +1715,7 @@ No markdown, no explanation, only the JSON object.`,
     const parsed=JSON.parse(raw);
     if(S.mode==="item"){
       if(parsed.desc&&!S.desc)S.desc=parsed.desc;
+      if(parsed.shortSummary&&!S.shortSummary)S.shortSummary=parsed.shortSummary;
       if(parsed.category)S.singleCategory=parsed.category;
       if(parsed.value){S.singleValue=parsed.value;S.singleValueSource=parsed.valueSource||"AI estimate — based on visible brand/condition";}
       if(parsed.dimensions)S.singleDimensions=parsed.dimensions;
@@ -1625,6 +1729,7 @@ No markdown, no explanation, only the JSON object.`,
       });}
       if(parsed.valueSources){parsed.valueSources.forEach((src,i)=>{if(src)S.itemValueSources[i]=src;});}
       if(parsed.desc&&!S.desc)S.desc=parsed.desc;
+      if(parsed.shortSummary&&!S.shortSummary)S.shortSummary=parsed.shortSummary;
       if(parsed.fragile)S.fragile=true;
     }
   }catch(err){
@@ -1770,6 +1875,7 @@ async function saveBoxToSupabase(){
       weight_kg: S.weightKg != null ? Number(S.weightKg) : null,
       origin_home: S.originHome || null,
       origin_room: S.originRoom || null,
+      owners: (S.owners && S.owners.length) ? S.owners.join(", ") : null,
     });
     if(error){ console.error("Supabase standalone_items error:", error); return false; }
     return true;
@@ -1792,6 +1898,7 @@ async function saveBoxToSupabase(){
     box_size: S.boxSize || null,
     origin_home: S.originHome || null,
     origin_room: S.originRoom || null,
+    owners: (S.owners && S.owners.length) ? S.owners.join(", ") : null,
   }).select("id").single();
 
   if(boxErr){ console.error("Supabase box error:", boxErr); return false; }
@@ -1828,7 +1935,7 @@ async function loadRegistryFromSupabase(){
     // Load all boxes for this move
     const {data: boxes, error: boxErr} = await sb
       .from("boxes")
-      .select("box_number, box_code, tier, description, short_summary, destination_room, item_count")
+      .select("box_number, box_code, tier, description, short_summary, destination_room, item_count, owners")
       .eq("move_id", MOVE_ID)
       .order("created_at", {ascending: true});
 
@@ -1837,7 +1944,7 @@ async function loadRegistryFromSupabase(){
     // Load all standalone items for this move
     const {data: items, error: itemErr} = await sb
       .from("standalone_items")
-      .select("item_code, tier, description, short_summary, destination_room")
+      .select("item_code, tier, description, short_summary, destination_room, owners")
       .eq("move_id", MOVE_ID)
       .order("created_at", {ascending: true});
 
@@ -1919,6 +2026,9 @@ async function confirmBox(){
     setTimeout(drawQR, 50);
     return;
   }
+
+  // v20.1: saved OK — drop the session snapshot so a later crash doesn't re-open this box
+  clearSession();
 
   // Push to local registry
   const active = S.items.filter((_,i) => !S.removed.includes(i));
@@ -2070,27 +2180,33 @@ async function printLabel(copies){
 }
 
 async function renderLabelToCanvas(copies){
-  // v20: 4×6 portrait at 203 DPI = 812 × 1218 pixels
+  // v20.1.1: logical 4×6 portrait at 203 DPI (812×1218 logical px)
+  // Canvas is rendered at 2× pixel density (1624×2436) for sharper thermal prints —
+  // the printer downsamples but edge detail is preserved.
   const LW = 812, LH = 1218;
-  const MARGIN = 24;       // inter-label gutter
-  const PAD = 24;          // outer page padding
+  const DPR = 2;           // device pixel ratio multiplier for print quality
+  const MARGIN = 24;       // inter-label gutter (logical px)
+  const PAD = 24;          // outer page padding (logical px)
   const cols = copies === 4 ? 2 : 1;
   const rows = copies === 4 ? 2 : copies;
   const CW = LW * cols + MARGIN * (cols - 1);
   const CH = LH * rows + MARGIN * (rows - 1);
 
   const cv = document.createElement("canvas");
-  cv.width = CW + PAD*2;
-  cv.height = CH + PAD*2;
+  cv.width = (CW + PAD*2) * DPR;
+  cv.height = (CH + PAD*2) * DPR;
   const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);     // all draw calls now in logical coordinates, 2× output
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
 
   // White background
   ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.fillRect(0, 0, CW + PAD*2, CH + PAD*2);
 
-  // Pre-fetch QR so we can embed it when drawing each label
+  // Pre-fetch QR at 400×400 (larger source for supersampled scale down)
   const qrUrl = SHEET_URL + "&box=" + encodeURIComponent(S.boxId);
-  const qrImg = await loadImage("https://api.qrserver.com/v1/create-qr-code/?size=200x200&format=png&data=" + encodeURIComponent(qrUrl));
+  const qrImg = await loadImage("https://api.qrserver.com/v1/create-qr-code/?size=400x400&format=png&data=" + encodeURIComponent(qrUrl));
 
   for(let ci = 0; ci < copies; ci++){
     const col = copies === 4 ? ci % 2 : 0;
@@ -2123,52 +2239,56 @@ function drawLabelOnCanvas(ctx, ox, oy, LW, LH, qrImg){
   let y = oy + PAD + 10; // running y cursor
 
   // ── HEADER ROW ────────────────────────────────────────────
-  // Left: "BOX" tag + big number
-  ctx.fillStyle = "#555555";
-  ctx.font = "500 22px Inter, Arial, sans-serif";
-  ctx.fillText("BOX", ox + PAD, y + 14);
-  ctx.fillStyle = "#000000";
-  ctx.font = "700 160px Inter, Arial, sans-serif";
-  ctx.fillText(S.boxId, ox + PAD - 6, y + 140);
-
-  // Right: tier badge (solid black box, white text)
-  const tbW = 230, tbH = 180;
+  // Right: tier badge (solid black box, white text) — grown to 300×230
+  const tbW = 300, tbH = 230;
   const tbX = ox + LW - PAD - tbW;
   const tbY = y + 6;
   ctx.fillStyle = "#000000";
   ctx.fillRect(tbX, tbY, tbW, tbH);
   ctx.fillStyle = "#ffffff";
-  ctx.font = "700 130px Inter, Arial, sans-serif";
+  ctx.font = "700 170px Inter, Arial, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(S.tier, tbX + tbW/2, tbY + 128);
-  ctx.font = "500 22px Inter, Arial, sans-serif";
-  ctx.fillText(t.sub1, tbX + tbW/2, tbY + 154);
-  ctx.fillText(t.sub2, tbX + tbW/2, tbY + 176);
+  ctx.fillText(S.tier, tbX + tbW/2, tbY + 168);
+  ctx.font = "500 26px Inter, Arial, sans-serif";
+  ctx.fillText(t.sub1, tbX + tbW/2, tbY + 200);
+  ctx.fillText(t.sub2, tbX + tbW/2, tbY + 224);
   ctx.textAlign = "left";
 
-  y += 210;
+  // Left: "BOX" tag + big number, CENTERED in the space between left edge and tier badge
+  // Available left column: from (ox + PAD) to (tbX - 12), so center = midpoint
+  const leftColCenter = (ox + PAD + tbX - 12) / 2;
+  ctx.fillStyle = "#555555";
+  ctx.font = "500 26px Inter, Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("BOX", leftColCenter, y + 34);
+  ctx.fillStyle = "#000000";
+  ctx.font = "700 190px Inter, Arial, sans-serif";
+  // Vertically align box number with the tier letter visual centre
+  ctx.fillText(S.boxId, leftColCenter, y + 188);
+  ctx.textAlign = "left";
+
+  y += 258;
 
   // ── SUMMARY (bold, centered) ─────────────────────────────
   ctx.fillStyle = "#000000";
-  ctx.font = "700 38px Inter, Arial, sans-serif";
+  ctx.font = "700 54px Inter, Arial, sans-serif";
   ctx.textAlign = "center";
   const summary = S.shortSummary || S.desc || "—";
-  fillTextWrapped(ctx, summary, ox + LW/2, y + 30, LW - PAD*2 - 40, 44, 1);
-  y += 60;
+  fillTextWrapped(ctx, summary, ox + LW/2, y + 42, LW - PAD*2 - 40, 60, 1);
+  y += 78;
   ctx.textAlign = "left";
 
   // ── PACKED FROM BAND (solid black, white text) ───────────
-  const bandH = 60;
+  const bandH = 56;
   ctx.fillStyle = "#000000";
   ctx.fillRect(ox + PAD, y, LW - PAD*2, bandH);
   ctx.fillStyle = "#ffffff";
-  ctx.font = "500 36px Inter, Arial, sans-serif";
+  ctx.font = "500 32px Inter, Arial, sans-serif";
   ctx.textAlign = "center";
   const originText = [S.originHome, S.originRoom].filter(Boolean).join(" · ").toUpperCase() || "—";
-  const textY = y + 42;
-  fillTextWrapped(ctx, originText, ox + LW/2, textY, LW - PAD*2 - 20, 40, 1);
+  fillTextWrapped(ctx, originText, ox + LW/2, y + 38, LW - PAD*2 - 20, 36, 1);
   ctx.textAlign = "left";
-  y += bandH + 18;
+  y += bandH + 22;
 
   // ── FRAGILE STRIPE (conditional) ─────────────────────────
   if(S.fragile){
@@ -2181,7 +2301,7 @@ function drawLabelOnCanvas(ctx, ox, oy, LW, LH, qrImg){
     ctx.strokeRect(stX+2, y+2, stW-4, stH-4);
 
     // Hatched flanks
-    const flankW = 90;
+    const flankW = 100;
     drawHatchRect(ctx, stX+2, y+2, flankW, stH-4);
     drawHatchRect(ctx, stX+stW-flankW-2, y+2, flankW, stH-4);
 
@@ -2192,22 +2312,22 @@ function drawLabelOnCanvas(ctx, ox, oy, LW, LH, qrImg){
     // FRAGILE + HANDLE WITH CARE centered between flanks
     ctx.fillStyle = "#000000";
     ctx.textAlign = "center";
-    ctx.font = "700 34px Inter, Arial, sans-serif";
+    ctx.font = "700 36px Inter, Arial, sans-serif";
     ctx.fillText("FRAGILE", stX + stW/2, y + 36);
     ctx.font = "400 20px Inter, Arial, sans-serif";
-    ctx.fillText("HANDLE WITH CARE", stX + stW/2, y + 60);
+    ctx.fillText("HANDLE WITH CARE", stX + stW/2, y + 62);
     ctx.textAlign = "left";
-    y += stH + 14;
+    y += stH + 16;
   }
 
   // ── CONTENTS ─────────────────────────────────────────────
   ctx.fillStyle = "#555555";
-  ctx.font = "500 22px Inter, Arial, sans-serif";
+  ctx.font = "500 24px Inter, Arial, sans-serif";
   const contentsLabel = "CONTENTS (" + (isItem ? 1 : active.length) + " ITEM" + ((isItem?1:active.length)===1?"":"S") + ")";
-  ctx.fillText(contentsLabel, ox + PAD, y + 18);
-  y += 30;
+  ctx.fillText(contentsLabel, ox + PAD, y + 22);
+  y += 38;
 
-  // Two columns
+  // Two columns — up to 8 items (4 per col)
   const MAX_SHOW = 8;
   const itemsToShow = isItem ? [S.singleCategory || "Item"] : active.slice(0, MAX_SHOW).map(String);
   const extra = isItem ? 0 : Math.max(0, active.length - MAX_SHOW);
@@ -2215,21 +2335,20 @@ function drawLabelOnCanvas(ctx, ox, oy, LW, LH, qrImg){
   const colW = (LW - PAD*2 - 30) / 2;
   const colX1 = ox + PAD;
   const colX2 = ox + PAD + colW + 30;
-  const rowH = 32;
+  const rowH = 40;
   ctx.fillStyle = "#000000";
-  ctx.font = "400 24px Inter, Arial, sans-serif";
+  ctx.font = "400 30px Inter, Arial, sans-serif";
   const half = Math.ceil(itemsToShow.length / 2);
-  const contentsStartY = y + 28;
+  const contentsStartY = y + 32;
   for(let i = 0; i < itemsToShow.length; i++){
     const inLeft = i < half;
     const colX = inLeft ? colX1 : colX2;
     const rIdx = inLeft ? i : (i - half);
     const text = "· " + itemsToShow[i];
-    // Truncate if too wide
     const maxW = colW;
     ctx.fillText(truncateText(ctx, text, maxW), colX, contentsStartY + rIdx * rowH);
   }
-  y = contentsStartY + half * rowH + 8;
+  y = contentsStartY + half * rowH + 12;
 
   // ── SIZE / WEIGHT ROW ────────────────────────────────────
   ctx.strokeStyle = "#000000";
@@ -2242,21 +2361,21 @@ function drawLabelOnCanvas(ctx, ox, oy, LW, LH, qrImg){
   const sizeDisplay = (S.boxSize || "Medium").toUpperCase();
   const weightDisplay = S.weightKg != null ? (Number(S.weightKg).toFixed(1) + " kg") : "—";
   ctx.fillStyle = "#555555";
-  ctx.font = "500 22px Inter, Arial, sans-serif";
-  ctx.fillText("SIZE", ox + PAD, y + 30);
+  ctx.font = "500 24px Inter, Arial, sans-serif";
+  ctx.fillText("SIZE", ox + PAD, y + 36);
   ctx.fillStyle = "#000000";
-  ctx.font = "700 26px Inter, Arial, sans-serif";
-  ctx.fillText(isItem ? "—" : sizeDisplay, ox + PAD + 60, y + 30);
+  ctx.font = "700 32px Inter, Arial, sans-serif";
+  ctx.fillText(isItem ? "—" : sizeDisplay, ox + PAD + 70, y + 36);
 
   ctx.fillStyle = "#555555";
-  ctx.font = "500 22px Inter, Arial, sans-serif";
+  ctx.font = "500 24px Inter, Arial, sans-serif";
   ctx.textAlign = "right";
-  ctx.fillText("WEIGHT", ox + LW - PAD - 120, y + 30);
+  ctx.fillText("WEIGHT", ox + LW - PAD - 140, y + 36);
   ctx.fillStyle = "#000000";
-  ctx.font = "700 28px Inter, Arial, sans-serif";
-  ctx.fillText(weightDisplay, ox + LW - PAD, y + 30);
+  ctx.font = "700 34px Inter, Arial, sans-serif";
+  ctx.fillText(weightDisplay, ox + LW - PAD, y + 36);
   ctx.textAlign = "left";
-  y += 50;
+  y += 62;
 
   // ── QR + PACKED BY ───────────────────────────────────────
   ctx.strokeStyle = "#000000";
@@ -2266,37 +2385,53 @@ function drawLabelOnCanvas(ctx, ox, oy, LW, LH, qrImg){
   ctx.lineTo(ox + LW - PAD, y);
   ctx.stroke();
 
-  // QR on left
-  const QR_SIZE = 150;
-  if(qrImg) ctx.drawImage(qrImg, ox + PAD, y + 14, QR_SIZE, QR_SIZE);
+  // QR on left — grown to 220
+  const QR_SIZE = 220;
+  if(qrImg) ctx.drawImage(qrImg, ox + PAD, y + 18, QR_SIZE, QR_SIZE);
   else {
     ctx.strokeStyle = "#cccccc";
-    ctx.strokeRect(ox + PAD, y + 14, QR_SIZE, QR_SIZE);
+    ctx.strokeRect(ox + PAD, y + 18, QR_SIZE, QR_SIZE);
   }
 
-  // Packed-by on right
+  // Packed-by on right (includes Belongs to line if owners set)
+  const ownersText = (S.owners && S.owners.length) ? S.owners.join(" · ") : "";
   ctx.textAlign = "right";
+  let rightY = y + 30;
+  if(ownersText){
+    ctx.fillStyle = "#555555";
+    ctx.font = "400 22px Inter, Arial, sans-serif";
+    ctx.fillText("Belongs to", ox + LW - PAD, rightY);
+    rightY += 32;
+    ctx.fillStyle = "#000000";
+    ctx.font = "700 26px Inter, Arial, sans-serif";
+    // Truncate if too wide to fit within the right column
+    const maxRightW = LW - PAD*2 - QR_SIZE - 40;
+    ctx.fillText(truncateText(ctx, ownersText, maxRightW), ox + LW - PAD, rightY);
+    rightY += 32;
+  }
   ctx.fillStyle = "#555555";
-  ctx.font = "400 22px Inter, Arial, sans-serif";
-  ctx.fillText("Packed by", ox + LW - PAD, y + 48);
+  ctx.font = "400 24px Inter, Arial, sans-serif";
+  ctx.fillText("Packed by", ox + LW - PAD, rightY);
+  rightY += 34;
   ctx.fillStyle = "#000000";
-  ctx.font = "700 28px Inter, Arial, sans-serif";
-  ctx.fillText(S.packedBy || "—", ox + LW - PAD, y + 82);
+  ctx.font = "700 30px Inter, Arial, sans-serif";
+  ctx.fillText(S.packedBy || "—", ox + LW - PAD, rightY);
+  rightY += 32;
   ctx.fillStyle = "#555555";
   ctx.font = "400 20px Inter, Arial, sans-serif";
-  ctx.fillText(formatTimestamp(S.packedAt) || "—", ox + LW - PAD, y + 112);
+  ctx.fillText(formatTimestamp(S.packedAt) || "—", ox + LW - PAD, rightY);
   ctx.textAlign = "left";
-  y += QR_SIZE + 22;
+  y += QR_SIZE + 30;
 
   // ── DELIVER TO footer ────────────────────────────────────
   ctx.fillStyle = "#555555";
   ctx.font = "500 22px Inter, Arial, sans-serif";
-  ctx.fillText("DELIVER TO", ox + PAD, y + 20);
+  ctx.fillText("DELIVER TO", ox + PAD, y + 22);
   ctx.fillStyle = "#000000";
   ctx.font = "400 22px Inter, Arial, sans-serif";
   ctx.fillText(
     DELIVER_TO.name + " · " + DELIVER_TO.addr1 + " · " + DELIVER_TO.addr2,
-    ox + PAD, y + 50
+    ox + PAD, y + 52
   );
 }
 
@@ -2433,6 +2568,7 @@ function closeLightbox(){
 
 /* ── Next box — preserves session-level defaults (home, room, size, packedBy, mode, tier) ── */
 function nextBox(){
+  clearSession(); // v20.1: previous box saved OK, don't resume it
   S = {
     ...S,
     step:0,
@@ -2445,6 +2581,7 @@ function nextBox(){
     boxId:"", boxNumber:null, packedAt:null,
     sheetResult:"", editingItem:null, driveFolderUrl:"", driveError:"",
     weightKg:null,
+    owners:[], // v20.1: owners are per-box, not session-level
   };
   r();
 }
@@ -2454,6 +2591,27 @@ function toast(msg){
   let t=document.getElementById("toast");
   if(!t){t=document.createElement("div");t.id="toast";t.style.cssText="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#222;color:#fff;font-size:13px;padding:10px 20px;border-radius:20px;z-index:999;transition:opacity .3s;pointer-events:none";document.body.appendChild(t);}
   t.textContent=msg;t.style.opacity="1";clearTimeout(t._to);t._to=setTimeout(()=>t.style.opacity="0",2500);
+}
+
+// v20.1: restore session if user was mid-flow when app was backgrounded
+const savedSession = loadSession();
+if(savedSession && savedSession.screen === "pack" &&
+   typeof savedSession.step === "number" && savedSession.step >= 0 && savedSession.step <= 2){
+  // Only restore if there's meaningful progress (some data or past step 0)
+  const hasProgress = savedSession.step > 0 || savedSession.desc || savedSession.shortSummary ||
+                      (savedSession.photos && savedSession.photos.length) ||
+                      (savedSession.items && savedSession.items.length) ||
+                      savedSession.originRoom;
+  if(hasProgress){
+    // Merge saved state on top of initial defaults (so any new fields added later still exist)
+    const photosLost = savedSession._photosLost;
+    delete savedSession._photosLost;
+    Object.assign(S, savedSession);
+    // Show a short toast after first render so user knows we resumed them
+    setTimeout(() => {
+      toast(photosLost ? "Resumed — photos had to be dropped, please re-add" : "Resumed previous box");
+    }, 200);
+  }
 }
 
 r();

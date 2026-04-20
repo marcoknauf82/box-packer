@@ -24,11 +24,13 @@ Data loss bugs before the container seals are serious.
 
 ## Current technical state
 
-- Single HTML file (~115KB): `index.html` deployed at https://marcoknauf82.github.io/box-packer/
+- Single HTML file (~128KB): `index.html` deployed at https://marcoknauf82.github.io/box-packer/
 - PWA with manifest and service worker (installable on Android)
 - No backend — all API calls go directly from browser to Anthropic, Google, and Supabase
 - No user accounts yet — single-user, single-move hardcoded
-- Current version: **v20**
+- In-flight packing state survives app backgrounding via localStorage snapshot (v20.1)
+- Canvas labels rendered at 2× supersampled resolution for thermal-print sharpness (v20.1.1)
+- Current version: **v20.1.1**
 
 ---
 
@@ -58,6 +60,7 @@ without checking all the places they are read and written.
 - `origin_room` text — e.g. "Basement" (v20 new)
 - `box_size` text — "Small"/"Medium"/"Large" (v20 new)
 - `weight_kg` decimal(5,1) — optional (v20 new)
+- `owners` text — comma-separated list of owners from OWNERS_LIST, e.g. "Marco, Geetha" (v20.1 new)
 - `is_fragile` boolean
 - `packed_by` text — "Marco" or "Geetha"
 - `packed_at` date
@@ -80,6 +83,7 @@ without checking all the places they are read and written.
 - Same value/source fields as box_items
 - `dimensions` text
 - `short_summary`, `origin_home`, `origin_room`, `weight_kg` (v20 new)
+- `owners` text — comma-separated list of owners (v20.1 new)
 
 **origin_rooms** (v20 new)
 - `id` uuid (PK)
@@ -126,20 +130,35 @@ without checking all the places they are read and written.
    In v20, SESSION-level fields (`tier`, `originHome`, `originRoom`, `boxSize`,
    `packedBy`, `mode`) are INTENTIONALLY preserved across `nextBox()` and the menu
    "Pack a Box" button. Per-box fields (`desc`, `shortSummary`, `dest`, `fragile`,
-   `photos`, `items`, `weightKg`, `boxId`, `boxNumber`, `packedAt`, etc.) are cleared
-   every time.
+   `photos`, `items`, `weightKg`, `boxId`, `boxNumber`, `packedAt`, `owners`,
+   etc.) are cleared every time. Note: `owners` is per-box (changes per container),
+   not session (like home/room), because which family member's stuff is in a
+   given box varies.
 
 8. **`S.packedAt` is set once at confirm time** (ISO timestamp). Do not overwrite on
    re-render. It becomes the authoritative timestamp for that box.
+
+9. **Session persistence via localStorage under `SESSION_KEY` (v20.1).** `saveSession()`
+   is called from every `r()`. The saved snapshot is a whitelist of fields (not the
+   full `S` spread) — `registry`, `detailBox`, `detailItems`, `editingItem`, and
+   `originRoomsByHome` are deliberately excluded because they're re-fetched from
+   Supabase on boot. `clearSession()` fires on: successful save, menu "Pack a Box",
+   `nextBox`, and back-to-menu. Restore is only attempted when the saved screen is
+   `"pack"` and step is 0–2 with meaningful progress.
+
+10. **Owners values must come from OWNERS_LIST.** The UI enforces this via hardcoded
+    buttons (Marco, Geetha, Arun, Maya). If you add owners programmatically, pull from
+    OWNERS_LIST. Stored as comma-separated text, not an array, for simplicity.
 
 ### Google Sheets (backup/export — secondary)
 
 Sheet ID: `1PJWbuRemzJIMXFgyxln4256B6Z4Sy7nnyI7-g7gLtHw`
 
 Three tabs:
-- `Box Registry` — one row per box. v20 row shape (14 columns):
+- `Box Registry` — one row per box. v20.1 row shape (15 columns):
   Box ID, Tier, Tier Name, Short Summary, Description, Packed From, Destination,
-  Size, Weight (kg), # Items, Fragile?, Date Packed, Inventory QR URL, Photos (Drive)
+  Size, Weight (kg), Belongs To, # Items, Fragile?, Date Packed, Inventory QR URL,
+  Photos (Drive)
 - `Item Detail` — one row per item within boxes
 - `Item Registry` — one row per standalone item
 
@@ -230,6 +249,27 @@ User preference: the prominent black band should show origin visibly, the word "
 FROM" is redundant context since the address format is already unambiguous. The full
 deliver-to address is kept small-print at the bottom specifically for lost-box recovery.
 
+### Why multi-owner is per-box, not session (v20.1)
+The packing session is a single human doing the work, so `packed_by` is session-level.
+But which family member's stuff is in each box changes per container — one box might
+be all Marco's work clothes, the next might be mixed kids' toys. So `owners` resets
+on every new box, unlike `packedBy`.
+
+### Why session persistence uses localStorage (not IndexedDB) — v20.1
+IndexedDB is the "right" choice for photo-sized blobs, but it's async-only and
+significantly more code. localStorage works synchronously, fits everything except the
+biggest photo sets, and has a clean quota-exceeded fallback (drop photos, flag the
+session so the restore toast tells the user). Phase 2 can move to IndexedDB when
+migrating to React.
+
+### Why owners is a comma-separated text field (not an array)
+Supabase/Postgres supports text[] natively, and it would be the cleaner data model.
+But the UI enforces values via hardcoded buttons, the write is always a join(","),
+and the read is always a split(",") or raw display — so we'd be serializing to array
+and back to string anyway. Text is simpler and keeps the schema homogeneous with the
+other text fields. Phase 2 with accounts will revisit this when owners become
+first-class user references.
+
 ---
 
 ## What has been deliberately deferred (do not build yet)
@@ -304,6 +344,7 @@ App chrome unchanged from v19:
 
 ---
 
-*Last updated: April 19, 2026 (v20 — Nelko label rewrite, 5 tiers, new fields, integer
-box_number). Update this file whenever a significant architectural decision is made,
-a known issue is resolved, or a deferred item moves to active development.*
+*Last updated: April 19, 2026 (v20.1 — label tweaks, AI auto-summary, session
+persistence, multi-owner field). Update this file whenever a significant architectural
+decision is made, a known issue is resolved, or a deferred item moves to active
+development.*

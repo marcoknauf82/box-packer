@@ -14,6 +14,85 @@ Mark open bugs under **Known issues** at the bottom.
 
 ---
 
+## v20.1.1 — April 2026
+
+**Print-quality hotfix based on first real label printed**
+
+No SQL migration. Canvas-rendering changes only.
+
+- **2× supersampled canvas output** for noticeably sharper thermal prints. Logical coordinates are unchanged (4×6 at 203 DPI = 812×1218 logical), but the canvas is now rendered at 1624×2436 physical pixels with `ctx.scale(2,2)`. The Nelko downsample pass preserves edge detail better this way — text edges and QR modules come out crisp instead of mushy.
+- **QR code source upgraded from 200×200 to 400×400** and drawn at 220×220 (was 150×150). Larger, cleaner scan target.
+- **Sections grown to fill the label vertically**. The old v20 layout left ~400px empty at the bottom on a typical 4-item box. New section heights:
+  - Header row 210→258px (box number font 160→190px, tier badge 230×180→300×230, tier letter 130→170px)
+  - Short summary 46→54px font
+  - Packed-from band 44→56px tall, 26→32px font
+  - Contents rows 32→40px, 24→30px font
+  - Size/weight row 50→62px, fonts bumped
+  - QR + packed-by area 150→220px QR, all fonts +10%
+- **Box number centered** horizontally in the space between the left edge and the tier badge (was flush to the left padding, left a lot of dead air).
+- **MAX_SHOW stays at 8** items; boxes with more show "+N more items" as before. Fits neatly within the label even with fragile stripe and full contents.
+- Bottom margin across all cases now: 8–260px depending on content density (was 40–400px+).
+
+---
+
+
+
+## v20.1 — April 2026
+
+**Iteration after first live-test session: label tweaks, AI auto-summary, session persistence, multi-owner field**
+
+*Ships with a small SQL migration — run before deploying:*
+
+```sql
+alter table boxes add column owners text;
+alter table standalone_items add column owners text;
+```
+
+**Label**
+
+- Short summary font increased from 38→46px on canvas (17→22px in preview). It's the most glanceable thing on the label — now sized appropriately.
+- "Packed from" black band reduced from 60→44px height and 36→26px text. It was dominating the label; scaled back so it reads as context, not headline.
+- New "Belongs to" line added above "Packed by" in the QR footer area. Shows all owners dot-separated (e.g. "Marco · Geetha"). Label-safe truncation on overflow.
+
+**AI photo analysis**
+
+- Prompt now asks for `shortSummary` in both box mode AND item mode (v20 had it only in box mode).
+- Response handler populates `S.shortSummary` automatically if empty. User can still edit it on the review screen — the field is no longer blank by default.
+
+**Photo upload**
+
+- `capture="environment"` attribute removed from the file input. Android/iOS now offer both **"Take photo"** and **"Choose from gallery"** options. Upload-zone copy updated to reflect this.
+
+**Review screen**
+
+- New black banner at the top of the review card shows the **total estimated box value** ("Box total estimated value · $1,240"). Calculated as sum of item values minus any removed items.
+- Owners multi-select moved to review card (in addition to Step 0) so the user can adjust ownership after photos are analyzed.
+
+**Session persistence (app-switch resilience)**
+
+- State now snapshots to `localStorage` on every render. If the user switches apps, the PWA is suspended, or the browser tab is reclaimed, the app **resumes mid-flow** on return instead of resetting to the menu.
+- Only persists when `screen === "pack"` with meaningful progress (step > 0, or any user input at step 0).
+- Restore is gated to step 0–2 only (won't attempt to resume a mid-save or completed box).
+- Quota-exceeded fallback: if the browser rejects the full snapshot (photos at ≥8MB often hit the 5-10MB quota), saves without photos and flags the session — user sees a "Photos had to be dropped, please re-add" toast on resume instead of a silent failure.
+- Session cleared on: successful save, "Pack a Box" menu click, next-box, back-to-menu. So a fresh "Pack a Box" never resumes a stale box.
+
+**Multi-owner field**
+
+- New **"Contents belong to"** multi-select in both Step 0 and the review card. Four toggle buttons: Marco, Geetha, Arun, Maya. Any subset can be selected per box.
+- New `owners` text column on both `boxes` and `standalone_items` tables (comma-separated). Requires the SQL migration above before deploy.
+- Owners rendered on the printed label in the QR footer area (above "Packed by").
+- Owners shown in the registry detail view ("Belongs to: Marco, Geetha" row) and the Google Sheets export (new column, sheet now 15 columns wide).
+- Unlike home/room/size/packedBy, owners are per-box state — reset on new-box just like description/photos.
+
+**Other**
+
+- Pre-existing safety: `S.owners` reads use `(S.owners||[]).length` guards throughout, so state restored from an older session without the field still renders correctly.
+- Version title + top bar subtitle bumped to v20.1.
+
+---
+
+
+
 ## v20 — April 2026
 
 **Nelko label rewrite, 5 tiers, new data model for the April packing sprint**
