@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Aachen Move — Box Packer v20.1.1</title>
+<title>Aachen Move — Box Packer v20.2.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -186,7 +186,7 @@ input,select,textarea{font-family:inherit}
 <body>
 <div class="app">
   <div class="top-bar">
-    <div><div class="top-title">Box Packer</div><div class="top-sub">Aachen move · v20.1.1</div></div>
+    <div><div class="top-title">Box Packer</div><div class="top-sub">Aachen move · v20.2.1</div></div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
       <div id="top-stats" style="font-size:12px;color:var(--muted);text-align:right"></div>
       <div id="auth-indicator"></div>
@@ -210,6 +210,9 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 const SUPABASE_URL = "https://csmkqnkdisimkrbqfdgn.supabase.co";
 const SUPABASE_KEY = "sb_publishable_KTvLw4NyGF5EXjzJmg5Bqw_jyozUGEv";
 const MOVE_ID = "f3ec17dd-437a-4e60-bbe5-58d1ce340ed9"; // Chicago → Aachen 2026
+// v20.2.1: QR codes on labels point here. Scanning a label opens the app
+// to that box's detail screen.
+const APP_URL = "https://marcoknauf82.github.io/box-packer/";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const SHEET_ID = "1PJWbuRemzJIMXFgyxln4256B6Z4Sy7nnyI7-g7gLtHw";
@@ -245,6 +248,17 @@ const ORIGIN_HOMES = ["Chicago Home","Holiday Home"];
 const OWNERS_LIST = ["Marco","Geetha","Arun","Maya"];
 const SESSION_KEY = "boxpacker_session_v201";
 
+// v20.2: 7 box sizes — 4 with known dimensions, 3 prompt for manual input
+const BOX_SIZES = [
+  { name: "Extra Small",  dims: null,             needsPrompt: true  },
+  { name: "Small",        dims: "17×11×12 in",    needsPrompt: false },
+  { name: "Medium",       dims: "22×13×15 in",    needsPrompt: false },
+  { name: "Large",        dims: "27×15×17 in",    needsPrompt: false },
+  { name: "Extra Large",  dims: null,             needsPrompt: true  },
+  { name: "Imperfect Box",dims: "22×15×10.5 in",  needsPrompt: false },
+  { name: "Oversized",    dims: null,             needsPrompt: true  },
+];
+
 const counters = {A:0,B:0,C:1};
 let googleToken = null;
 let googleUser = null;
@@ -254,7 +268,7 @@ let S = {
   step:0, mode:"box", tier:"A", dest:"", desc:"", shortSummary:"", fragile:false,
   packedBy:"Marco",
   // v20: new fields
-  weightKg:null, boxSize:"Medium", originHome:"Chicago Home", originRoom:"",
+  weightKg:null, boxSize:"Medium", dimensions:"", originHome:"Chicago Home", originRoom:"",
   // v20.1: owners multi-select (contents belong to)
   owners:[],
   // End v20 new fields
@@ -290,7 +304,7 @@ function saveSession(){
     const snap = JSON.parse(JSON.stringify({
       screen: S.screen, step: S.step, mode: S.mode, tier: S.tier,
       dest: S.dest, desc: S.desc, shortSummary: S.shortSummary, fragile: S.fragile,
-      packedBy: S.packedBy, weightKg: S.weightKg, boxSize: S.boxSize,
+      packedBy: S.packedBy, weightKg: S.weightKg, boxSize: S.boxSize, dimensions: S.dimensions,
       originHome: S.originHome, originRoom: S.originRoom, owners: S.owners,
       photos: S.photos, items: S.items, removed: S.removed,
       itemCategories: S.itemCategories, itemValues: S.itemValues,
@@ -509,6 +523,7 @@ async function loadBoxDetail(boxId){
         packedAt: box.packed_at, valueCents: box.est_value_cents,
         driveUrl: box.drive_folder_url,
         weightKg: box.weight_kg, size: box.box_size,
+        dimensions: box.dimensions || "",
         originHome: box.origin_home, originRoom: box.origin_room,
         owners: box.owners || "",
       };
@@ -564,6 +579,7 @@ function vBoxDetail(){
       ${originDisplay ? `<div><strong>From:</strong> ${esc(originDisplay)}</div>` : ''}
       ${b.dest ? `<div><strong>To:</strong> ${esc(b.dest)}</div>` : ''}
       ${b.size ? `<div>Size: ${esc(b.size)}</div>` : ''}
+      ${b.dimensions ? `<div>Dims: ${esc(b.dimensions)}</div>` : ''}
       ${weightDisplay ? `<div>Weight: ${weightDisplay}</div>` : ''}
       ${b.owners ? `<div><strong>Belongs to:</strong> ${esc(b.owners)}</div>` : ''}
       ${b.packedBy ? `<div>Packed by ${esc(b.packedBy)}</div>` : ''}
@@ -709,9 +725,23 @@ function v0(){
     ${S.mode==="box" ? `
     <div class="field">
       <label>Box size</label>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
-        ${["Small","Medium","Large"].map(sz=>`<button type="button" id="sz-${sz}" style="padding:9px;border-radius:8px;border:1.5px solid ${S.boxSize===sz?"var(--text)":"var(--border)"};background:${S.boxSize===sz?"var(--text)":"var(--surface)"};color:${S.boxSize===sz?"#fff":"var(--text)"};font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">${sz}</button>`).join("")}
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+        ${BOX_SIZES.map(sz=>{
+          const sel = S.boxSize === sz.name;
+          const subtitle = sz.dims ? sz.dims : "enter below";
+          return `<button type="button" class="size-btn" data-size="${esc(sz.name)}" style="padding:8px 4px;border-radius:8px;border:1.5px solid ${sel?"var(--text)":"var(--border)"};background:${sel?"var(--text)":"var(--surface)"};color:${sel?"#fff":"var(--text)"};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;line-height:1.2">${esc(sz.name)}<div style="font-size:9px;font-weight:400;opacity:.75;margin-top:2px">${esc(subtitle)}</div></button>`;
+        }).join("")}
       </div>
+      ${(() => {
+        const sz = BOX_SIZES.find(s=>s.name===S.boxSize);
+        if(!sz) return "";
+        if(sz.needsPrompt){
+          return `<div style="margin-top:8px"><label style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;display:block">Dimensions (L×W×H, in)</label><input id="f-dims" value="${esc(S.dimensions||"")}" placeholder='e.g. 14 x 10 x 9' style="width:100%"></div>`;
+        } else {
+          // Auto-populate dimensions from lookup so they save with the box
+          return `<div style="margin-top:6px;font-size:11px;color:var(--muted)">Dimensions: ${esc(sz.dims)}</div>`;
+        }
+      })()}
     </div>` : ""}
 
     <div class="meta-row">
@@ -787,7 +817,8 @@ function v1(){
   <div class="btn-row">
     <button class="btn btn-secondary" id="btn-back1" style="flex:1">Back</button>
     <button class="btn btn-primary" id="btn-analyze" style="flex:2" ${!hp?"disabled":""}>${S.mode==="item"?"Identify item":"Analyze photos"}</button>
-  </div>`;
+  </div>
+  <button class="btn btn-secondary" id="btn-skip-photos" style="width:100%;margin-top:10px;font-size:13px">Skip — enter ${S.mode==="item"?"item":"contents"} manually</button>`;
 }
 
 /* ── Step 2: Review ── */
@@ -1086,6 +1117,9 @@ function bind(){
     S.boxId=""; S.boxNumber=null; S.packedAt=null;
     S.sheetResult=""; S.editingItem=null; S.driveFolderUrl=""; S.driveError="";
     S.weightKg=null;
+    // v20.2: dimensions auto-populate from boxSize lookup; clear so new box redoes lookup
+    const sz = BOX_SIZES.find(s=>s.name===S.boxSize);
+    S.dimensions = (sz && !sz.needsPrompt) ? sz.dims : "";
     S.owners=[]; // v20.1: owners are per-box, not session-level
     // Preserved across boxes: S.tier, S.originHome, S.originRoom, S.boxSize, S.packedBy, S.mode
     // But default tier to A if this is the very first box of the session
@@ -1165,12 +1199,42 @@ function bind(){
     if(e.key==="Enter"){ e.preventDefault(); q("#btn-add-room")?.click(); }
   });
   // Box size buttons
-  ["Small","Medium","Large"].forEach(sz=>q("#sz-"+sz)?.addEventListener("click",()=>{S.boxSize=sz;r();}));
+  // v20.2: 7 box sizes — auto-populate dimensions from lookup, prompt for XS/XL/Oversized
+  qq(".size-btn").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const name = el.dataset.size;
+      S.boxSize = name;
+      const sz = BOX_SIZES.find(s=>s.name===name);
+      if(sz && !sz.needsPrompt){
+        // Standard size — auto-fill dimensions from lookup
+        S.dimensions = sz.dims;
+      } else {
+        // Prompt size — clear dimensions so user types fresh (unless already typed for this size)
+        if(!S.dimensions || BOX_SIZES.some(s=>s.dims===S.dimensions)){
+          S.dimensions = "";
+        }
+      }
+      r();
+    });
+  });
+  q("#f-dims")?.addEventListener("input", e=>{ S.dimensions = e.target.value; });
   q("#btn-google-auth")?.addEventListener("click",startGoogleAuth);
   q("#btn-test-key")?.addEventListener("click",testApiKey);
   // Step 1
   q("#btn-back1")?.addEventListener("click",()=>{S.step=0;r();});
   q("#btn-analyze")?.addEventListener("click",analyze);
+  // v20.2.1: skip photos → manual entry, jumps straight to review
+  q("#btn-skip-photos")?.addEventListener("click",()=>{
+    S.step = 2;
+    if(S.mode === "item"){
+      // Standalone item: empty defaults; user fills description / value / category in review
+      S.singleCategory = S.singleCategory || "Household";
+      S.singleValueSource = ""; // keep empty so value_source_type saves as 'manual' or 'not_set'
+    }
+    // Box mode: items array stays empty, user adds via "+" button in review
+    toast("Manual entry — add " + (S.mode === "item" ? "details" : "items") + " below");
+    r();
+  });
   q("#drop-zone")?.addEventListener("click",()=>q("#file-input").click());
   q("#add-more")?.addEventListener("click",()=>q("#file-input").click());
   q("#file-input")?.addEventListener("change",e=>handleFiles(e.target.files));
@@ -1276,7 +1340,7 @@ async function writeToSheet(){
       S.weightKg != null ? Number(S.weightKg).toFixed(1) : "",
       (S.owners && S.owners.length) ? S.owners.join(", ") : "",
       active.length, S.fragile?"Yes":"No", today,
-      SHEET_URL+"&box="+encodeURIComponent(S.boxId), photosCell
+      APP_URL+"?box="+encodeURIComponent(S.boxId), photosCell
     ]];
     await sheetsAppend(REGISTRY_SHEET, regRow);
     const itemRows=active.map((item,i)=>[S.boxId, i+1, S.itemCategories?.[i]||getCategory(item), item, 1, ""]);
@@ -1588,7 +1652,8 @@ function getCategory(item){
 function handleFiles(files){
   const slots=4-S.photos.length;
   Array.from(files).slice(0,slots).forEach(file=>{
-    compressImage(file,1200,0.82).then(dataUrl=>{S.photos.push(dataUrl);r();});
+    // v20.2: 1600px @ 0.85q gives ~300KB photos that AI reads accurately, even for book spines / label text
+    compressImage(file,1600,0.85).then(dataUrl=>{S.photos.push(dataUrl);r();});
   });
 }
 
@@ -1896,6 +1961,7 @@ async function saveBoxToSupabase(){
     item_count: active.length,
     weight_kg: S.weightKg != null ? Number(S.weightKg) : null,
     box_size: S.boxSize || null,
+    dimensions: S.dimensions || null,
     origin_home: S.originHome || null,
     origin_room: S.originRoom || null,
     owners: (S.owners && S.owners.length) ? S.owners.join(", ") : null,
@@ -2126,7 +2192,7 @@ function saveEdit(i){
 function drawQR(){
   const cv=document.getElementById("qr-cv");if(!cv)return;
   const ctx=cv.getContext("2d");
-  const url=SHEET_URL+"&box="+encodeURIComponent(S.boxId);
+  const url=APP_URL+"?box="+encodeURIComponent(S.boxId);
   const img=new Image();img.crossOrigin="anonymous";
   img.onload=()=>ctx.drawImage(img,0,0,60,60);
   img.onerror=()=>{ctx.fillStyle="#f5f5f5";ctx.fillRect(0,0,60,60);ctx.fillStyle="#aaa";ctx.font="8px monospace";ctx.textAlign="center";ctx.fillText("QR in",30,25);ctx.fillText("download",30,37);};
@@ -2205,7 +2271,7 @@ async function renderLabelToCanvas(copies){
   ctx.fillRect(0, 0, CW + PAD*2, CH + PAD*2);
 
   // Pre-fetch QR at 400×400 (larger source for supersampled scale down)
-  const qrUrl = SHEET_URL + "&box=" + encodeURIComponent(S.boxId);
+  const qrUrl = APP_URL + "?box=" + encodeURIComponent(S.boxId);
   const qrImg = await loadImage("https://api.qrserver.com/v1/create-qr-code/?size=400x400&format=png&data=" + encodeURIComponent(qrUrl));
 
   for(let ci = 0; ci < copies; ci++){
@@ -2581,6 +2647,11 @@ function nextBox(){
     boxId:"", boxNumber:null, packedAt:null,
     sheetResult:"", editingItem:null, driveFolderUrl:"", driveError:"",
     weightKg:null,
+    // v20.2: re-derive dimensions from preserved boxSize
+    dimensions: (() => {
+      const sz = BOX_SIZES.find(s=>s.name===S.boxSize);
+      return (sz && !sz.needsPrompt) ? sz.dims : "";
+    })(),
     owners:[], // v20.1: owners are per-box, not session-level
   };
   r();
@@ -2614,9 +2685,29 @@ if(savedSession && savedSession.screen === "pack" &&
   }
 }
 
+// v20.2: ensure dimensions matches the default boxSize on cold boot
+if(!S.dimensions){
+  const sz = BOX_SIZES.find(s=>s.name===S.boxSize);
+  if(sz && !sz.needsPrompt) S.dimensions = sz.dims;
+}
+
 r();
 loadRegistryFromSupabase();
 loadOriginRooms();
+
+// v20.2.1: scan-to-lookup. If URL has ?box=N, open that box's detail screen
+// after registry has had a chance to load. Works for box IDs like "14" or "I-03".
+(function handleQrScan(){
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const boxId = params.get("box");
+    if(!boxId) return;
+    // Wait briefly for registry to load, then navigate
+    setTimeout(() => {
+      loadBoxDetail(boxId);
+    }, 500);
+  } catch(e) { console.error("QR scan handler error:", e); }
+})();
 </script>
 </body>
 </html>
