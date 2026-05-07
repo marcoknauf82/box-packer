@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Aachen Move — Box Packer v20.2.2</title>
+<title>Aachen Move — Box Packer v20.2.3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -186,7 +186,7 @@ input,select,textarea{font-family:inherit}
 <body>
 <div class="app">
   <div class="top-bar">
-    <div><div class="top-title">Box Packer</div><div class="top-sub">Aachen move · v20.2.2</div></div>
+    <div><div class="top-title">Box Packer</div><div class="top-sub">Aachen move · v20.2.3</div></div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
       <div id="top-stats" style="font-size:12px;color:var(--muted);text-align:right"></div>
       <div id="auth-indicator"></div>
@@ -1317,6 +1317,19 @@ async function writeToSheet(){
         driveFolderUrl = "https://drive.google.com/drive/folders/" + folderId;
         S.driveFolderUrl = driveFolderUrl;
         await uploadPhotosToDrive(folderId);
+        // v20.2.3: persist drive_folder_url back to Supabase so it shows on the
+        // detail screen later (e.g. when you scan the QR code).
+        try {
+          if(S.mode === "item"){
+            await sb.from("standalone_items")
+              .update({ drive_folder_url: driveFolderUrl })
+              .eq("move_id", MOVE_ID).eq("item_code", S.boxId);
+          } else {
+            await sb.from("boxes")
+              .update({ drive_folder_url: driveFolderUrl })
+              .eq("move_id", MOVE_ID).eq("box_number", S.boxNumber);
+          }
+        } catch(ue){ console.warn("drive_folder_url update failed:", ue.message); }
       }catch(de){console.warn("Drive upload failed:",de.message);S.driveError=de.message;}
     }
     // Ensure headers exist on first write
