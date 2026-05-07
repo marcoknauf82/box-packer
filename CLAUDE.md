@@ -16,21 +16,24 @@ Google Sheets (secondary backup/export). Physical labels with QR codes are print
 Web Share API.
 
 The immediate use case is Marco and Geetha Knauf's Chicago-to-Aachen international
-relocation (container ships ~mid-May 2026, departure June 29 2026). This is not a
-hypothetical app — it is being actively used for a real move with a hard deadline.
+relocation (container picks up Friday, May 29 2026; Marco departs June 29 2026). This
+is not a hypothetical app — it is being actively used for a real move with a hard
+deadline.
 Data loss bugs before the container seals are serious.
 
 ---
 
 ## Current technical state
 
-- Single HTML file (~128KB): `index.html` deployed at https://marcoknauf82.github.io/box-packer/
+- Single HTML file (~138KB): `index.html` deployed at https://marcoknauf82.github.io/box-packer/
 - PWA with manifest and service worker (installable on Android)
 - No backend — all API calls go directly from browser to Anthropic, Google, and Supabase
 - No user accounts yet — single-user, single-move hardcoded
 - In-flight packing state survives app backgrounding via localStorage snapshot (v20.1)
 - Canvas labels rendered at 2× supersampled resolution for thermal-print sharpness (v20.1.1)
-- Current version: **v20.1.1**
+- Photos compressed client-side to 1600px / 0.85q before upload (v20.2)
+- QR codes on labels link directly to the app (`?box=N` triggers detail view) (v20.2.1)
+- Current version: **v20.2.2**
 
 ---
 
@@ -58,7 +61,8 @@ without checking all the places they are read and written.
 - `destination_room` text — optional, may be set later during unpacking
 - `origin_home` text — "Chicago Home" or "Holiday Home" (v20 new)
 - `origin_room` text — e.g. "Basement" (v20 new)
-- `box_size` text — "Small"/"Medium"/"Large" (v20 new)
+- `box_size` text — must be one of 'Extra Small' / 'Small' / 'Medium' / 'Large' / 'Extra Large' / 'Imperfect Box' / 'Oversized' (v20.2: expanded from 3 to 7 values)
+- `dimensions` text — L×W×H string. Auto-populated for standard sizes from `BOX_SIZES` lookup; manually entered for XS/XL/Oversized (v20.2 new)
 - `weight_kg` decimal(5,1) — optional (v20 new)
 - `owners` text — comma-separated list of owners from OWNERS_LIST, e.g. "Marco, Geetha" (v20.1 new)
 - `is_fragile` boolean
@@ -149,6 +153,28 @@ without checking all the places they are read and written.
 10. **Owners values must come from OWNERS_LIST.** The UI enforces this via hardcoded
     buttons (Marco, Geetha, Arun, Maya). If you add owners programmatically, pull from
     OWNERS_LIST. Stored as comma-separated text, not an array, for simplicity.
+
+11. **Box sizes must be one of seven values from `BOX_SIZES` (v20.2).** The DB check
+    constraint allows: 'Extra Small', 'Small', 'Medium', 'Large', 'Extra Large',
+    'Imperfect Box', 'Oversized'. The frontend `BOX_SIZES` constant is the source of
+    truth — it stores the dimension string for each standard size (Small=17×11×12 in,
+    Medium=22×13×15 in, Large=27×15×17 in, Imperfect Box=22×15×10.5 in). XS, XL, and
+    Oversized have `needsPrompt: true` and require user-entered dimensions. When
+    refactoring, do not split the size enum from this constant — they must stay in sync.
+
+12. **QR codes link to the app, not Sheets (v20.2.1).** Format: `${APP_URL}?box=${id}`.
+    Scanning the QR opens the PWA which reads `?box=N` from the URL on boot and calls
+    `loadBoxDetail(N)` automatically. Labels printed BEFORE v20.2.1 point to the Google
+    Sheet and won't scan-to-lookup correctly — they'll need re-printing if scan-to-lookup
+    becomes critical (e.g. for damage documentation). For Marco's move, only test boxes
+    were printed pre-v20.2.1, so this isn't a real concern.
+
+13. **Skip-photos flow (v20.2.1).** Step 1 has a "Skip — enter manually" button that
+    sets `S.step = 2` directly. Items array stays empty until user adds them via the
+    review screen's "+" button. `value_source_type` defaults to "not_set" or "manual"
+    depending on whether the user enters a value. This intentionally bypasses
+    `analyze()` entirely — no AI call, no API cost, no Drive folder created (since
+    there are no photos to upload). Box save still happens normally.
 
 ### Google Sheets (backup/export — secondary)
 
@@ -270,6 +296,36 @@ and back to string anyway. Text is simpler and keeps the schema homogeneous with
 other text fields. Phase 2 with accounts will revisit this when owners become
 first-class user references.
 
+### Why box sizes are categorical strings + a separate dimensions text field (v20.2)
+EOS Form #1180 needs cubic measurement per box (cubic feet or cubic inches). Marco
+buys boxes from Walmart in three standard sizes plus Imperfect Foods grocery boxes,
+so 4 of his boxes have known dimensions and the remaining 3 generic sizes (XS, XL,
+Oversized) get measured at packing time. The `BOX_SIZES` frontend constant maps
+each name to its known dimension string OR flags `needsPrompt: true` to surface a
+manual input. The `dimensions text` column on `boxes` stores whatever lands there —
+either auto-filled from the lookup or typed by hand. We could have stored cubic
+inches as a separate decimal column for cleaner aggregation, but Marco doesn't
+actually need running cubic-foot totals during packing, only at PDF-export time —
+so a text field is fine and we parse it later when needed.
+
+### Why QR codes link to the app instead of Google Sheets (v20.2.1)
+Original v19/v20 QR pointed to the Sheet URL with `&box=N` query params, which
+Sheets ignores. Functionally useless beyond "opens the spreadsheet." Switching to
+`APP_URL?box=N` lets the app intercept the param on boot and navigate to the box's
+detail screen — photos, items, full metadata. This is the foundation for delivery
+check-in (scan box on arrival in Aachen → app marks it received) and damage
+documentation (scan damaged box → see original packing photos for comparison).
+Trade-off: labels printed before v20.2.1 won't scan-to-lookup. Acceptable since
+no production labels were printed pre-v20.2.1.
+
+### Why skip-photos exists (v20.2.1)
+Some boxes don't benefit from AI analysis — sealed boxes of paperwork, identical
+restocks of consumables, items where the box label is the only identifier needed.
+Forcing a photo upload + AI call adds time and cost without value in those cases.
+Skip-photos jumps straight to manual review where the user types description and
+items by hand. `value_source_type` lands as "not_set" rather than "ai_estimate"
+which keeps audit trail honest about which boxes had AI involvement.
+
 ---
 
 ## What has been deliberately deferred (do not build yet)
@@ -290,18 +346,44 @@ first-class user references.
 
 ---
 
-## Known issues (open as of v20)
+## Known issues (open as of v20.2.2)
 
 - Two dead constants in script: `ITEM_COUNTER = {}` and `counters = {A:0,B:0,C:1}`.
   Unused; leaving to avoid needless edits. Remove in v21 cleanup.
 - `getNextBoxNumber` + INSERT is not atomic. Race acceptable for single-user Phase 1
   (Unique constraint catches it; user sees supa-fail on second submit).
-- Orphan risk: if box insert succeeds but items insert fails, a box row exists with no
-  items. Pre-existing from v19. User sees error and can manually resolve in Supabase UI.
 - Sheet formatting may still race on first write — pre-existing from v19.
 - Google OAuth re-consent occasionally required after scope upgrade.
 - Label PNG QR depends on api.qrserver.com availability — both in the preview canvas
   (#qr-cv) and in the rendered full label PNG. Same service as v19.
+- 2-copy / 4-copy print buttons stack labels onto a single PNG that doesn't print
+  correctly on Nelko thermal. Workaround: use "1 copy" only, set quantity inside the
+  Nelko app instead. Plan for v21 is to collapse to a single "Print label" button.
+
+## Resolved (formerly known issues)
+
+- ~~Orphan risk: if box insert succeeds but items insert fails, a box row exists with
+  no items.~~ Resolved by adding `ON DELETE CASCADE` to the FK in May 2026 (also
+  applied to `move_id` FKs on boxes / box_items / standalone_items). Cascade tested
+  in production after a manual delete left orphan items behind.
+- ~~`box_code` NOT NULL constraint from v19 silently survived the v20 migration~~,
+  causing every save attempt to fail with a 400. Resolved by `alter column box_code
+  drop not null`. Lesson: schema migrations can drop ALTER statements silently — verify
+  with sanity-check SELECTs after every migration, not just by running the script.
+
+## Lessons logged for v21+
+
+- **DOM IDs from user-facing strings need a generate-then-query test, not a code review.**
+  The Holiday Home button bug (v20.2.1) had `id="oh-${h.replace(/\\s+/g,'-')}"` —
+  double-escaped backslash inside a template literal. The renderer produced
+  `oh-Holiday Home` (with a space); the bind handler queried `#oh-Holiday-Home` (with
+  a hyphen). Both source lines looked correct in code review. Only a runtime test
+  catches the mismatch. Add to the Phase-2 lint pass: any code building DOM IDs from
+  template literals gets a unit test that round-trips a representative input.
+- **Schema migrations need explicit verification, not trust.** Two production-blocking
+  bugs in May 2026 (box_code NOT NULL, owners column missing in v20.1) both stemmed
+  from migration ALTER statements that silently failed or were skipped. Future
+  migrations include a "run this SELECT to confirm columns exist" verification step.
 
 ## Visual theme (as of v20)
 
@@ -326,15 +408,15 @@ App chrome unchanged from v19:
 - Flag irreversible decisions explicitly before implementing them.
 - Monetary values: always integer cents in the DB, always divide by 100 for display.
 - Before adding a feature, ask: does this need to work before the container ships
-  (~mid-May)? If yes, it is critical path. If no, it can wait.
+  (May 29)? If yes, it is critical path. If no, it can wait.
 
 ---
 
 ## The move timeline (for prioritisation)
 
-- **Now → mid-May 2026:** Intensive packing. Everything needed to document the move
+- **Now → May 29 2026:** Intensive packing. Everything needed to document the move
   must exist. Critical: PDF export, offline queue, all packing features stable.
-- **Mid-May → June 29 2026:** Container shipped. Build arrival-day features:
+- **May 29 → June 29 2026:** Container shipped. Build arrival-day features:
   delivery check-in (QR scan), unpacking mode, damage documentation.
 - **June 29 2026:** Marco and Geetha fly to Aachen.
 - **~July/August 2026:** Container arrives in Aachen. Delivery check-in and unpacking
@@ -344,7 +426,9 @@ App chrome unchanged from v19:
 
 ---
 
-*Last updated: April 19, 2026 (v20.1 — label tweaks, AI auto-summary, session
-persistence, multi-owner field). Update this file whenever a significant architectural
-decision is made, a known issue is resolved, or a deferred item moves to active
-development.*
+*Last updated: May 7, 2026 (v20.2.2 — hotfix for Holiday Home button regex; documented
+the bug pattern in the lessons section. Earlier today: 7-tile box size picker with
+dimensions, image compression, QR scan-to-lookup, skip-photos button, and final
+test-data wipe before real packing). Update this file whenever a significant
+architectural decision is made, a known issue is resolved, or a deferred item moves
+to active development.*

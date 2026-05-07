@@ -14,7 +14,104 @@ Mark open bugs under **Known issues** at the bottom.
 
 ---
 
-## v20.1.1 — April 2026
+## v20.2.2 — May 2026
+
+**Hotfix: Holiday Home button tap was a no-op**
+
+No SQL migration. One-character source change.
+
+**Bug**
+- The "Holiday Home" origin button in Step 0 didn't switch when tapped. Chicago Home appeared to work only because it's the default state on cold start; in reality both buttons were broken since v20.1 introduced the home picker. No one noticed earlier because the default never needed to be re-tapped.
+
+**Cause**
+- The render code on the home-button line had `id="oh-${h.replace(/\\s+/g,'-')}"` — double-escaped backslash inside a template literal. At runtime the regex matched the literal characters `\s` rather than whitespace, so `"Holiday Home".replace(...)` returned the unchanged string. The button got `id="oh-Holiday Home"` (with a space). The bind handler queried `#oh-Holiday-Home` (with a hyphen), found nothing, and silently skipped attaching the click listener.
+- Single-escape source: `/\s+/g`. Double-escape source: `/\\s+/g`. The bind handler had it right; the renderer had it wrong.
+
+**Fix**
+- Drop the extra backslash on line 710. Render and bind now produce identical IDs.
+
+**Lesson logged**
+- `node --check` and the Part A review can't catch DOM-ID generation bugs — the source compiles, the runtime just produces a quietly-wrong string. Any code that builds DOM IDs from user-facing strings should get a concrete generate-then-query test in the v21 lint pass, not just a visual code review.
+
+---
+
+
+
+## v20.2.1 — May 2026
+
+**Last polish before real packing kicks off**
+
+No SQL migration this round.
+
+**QR codes now link to the app instead of Google Sheets**
+- New `APP_URL` constant points to `https://marcoknauf82.github.io/box-packer/`. The QR encodes `${APP_URL}?box=${id}`. Three call sites updated: in-app preview QR (`drawQR`), canvas-rendered label QR (`drawLabelOnCanvas`), and Google Sheet's "Inventory QR URL" column.
+- Old behavior: scanning the QR opened the Google Sheet at default position; the `&box=N` param was ignored. Functionally just "decoration."
+- New behavior: scanning the QR opens the PWA, which reads `?box=N` from `window.location.search` on boot and calls `loadBoxDetail(N)` automatically. User lands on that box's detail screen with photos, items, owners, all metadata.
+- This is the foundation for the delivery check-in / damage documentation flows that need to exist by July when the container arrives in Aachen.
+- Trade-off: labels printed before v20.2.1 won't scan-to-lookup. Acceptable since no production labels were printed pre-v20.2.1 — only test-data labels that have since been wiped.
+
+**Skip-photos button on Step 1**
+- New "Skip — enter contents manually" button below the Analyze row. Tapping it sets `S.step = 2` and jumps straight to the review screen with an empty items list.
+- Useful for sealed boxes of paperwork, identical restocks, or anywhere the user doesn't want to spend AI tokens on items they can describe in two words.
+- All save semantics intact — `value_source_type` defaults to `"not_set"` until a manual value is entered (then `"manual"`), preserving an honest audit trail of which boxes had AI involvement.
+- No Drive folder created when there are no photos. No Anthropic API call made.
+- Existing review-screen "+ Add item" UI handles the manual entry; nothing else needed.
+
+**Test data wipe**
+- All test boxes / items removed from Supabase prior to real packing.
+
+---
+
+## v20.2 — May 2026
+
+**Box-size expansion + image compression bump for real packing readiness**
+
+*Ships with a SQL migration — run before deploying:*
+
+```sql
+do $$
+declare c record;
+begin
+  for c in select conname from pg_constraint
+           where conrelid = 'boxes'::regclass and contype = 'c'
+           and pg_get_constraintdef(oid) like '%box_size%'
+  loop execute 'alter table boxes drop constraint ' || c.conname; end loop;
+end $$;
+
+alter table boxes add constraint boxes_box_size_check
+  check (box_size in ('Extra Small','Small','Medium','Large','Extra Large','Imperfect Box','Oversized'));
+
+alter table boxes add column if not exists dimensions text;
+```
+
+**Box sizes — 3 → 7 with dimensions**
+- Replaced the 3-button Small/Medium/Large picker with a 7-tile grid (4 columns × 2 rows): Extra Small, Small, Medium, Large, Extra Large, Imperfect Box, Oversized.
+- New frontend constant `BOX_SIZES` is the source of truth: each entry has a `name`, `dims` string for standard sizes, and `needsPrompt: true` for the three sizes Marco doesn't have a default for. Standard sizes hardcoded with Marco's actual measurements:
+  - Small: 17×11×12 in (Walmart)
+  - Medium: 22×13×15 in (Walmart)
+  - Large: 27×15×17 in (Walmart)
+  - Imperfect Box: 22×15×10.5 in (Imperfect Foods grocery box, reused for moving)
+- Selecting a standard size auto-populates `S.dimensions` from the lookup; selecting XS / XL / Oversized exposes a free-form dimensions input below the grid.
+- New `dimensions text` column on `boxes` table stores whatever lands there — auto-filled lookup or manual entry. Used later for EOS Form #1180 cubic measurement.
+- Box detail view in Box Registry shows the dimensions row alongside size.
+- DB CHECK constraint on `box_size` updated to allow all 7 values.
+
+**Image compression — sharper cap for AI accuracy on text**
+- Bumped client-side resize from 1200px @ 0.82q → 1600px @ 0.85q.
+- Photos now land at ~300 KB each (was ~150–200 KB at the previous setting). The previous setting was occasionally aggressive enough to soften book spines and product labels, which hurt AI item identification accuracy. New setting is the sweet spot: still ~3–5× smaller than uncompressed phone JPEGs (so uploads to Drive stay fast on basement WiFi), but text-readable.
+- `compressImage()` itself unchanged. Only the call-site numbers moved.
+
+**State / persistence**
+- New `S.dimensions` field added to state; included in session-persistence snapshot so app-switching mid-pack preserves the dimension input for prompt-required sizes.
+- `nextBox()` and the "Pack a Box" menu handler re-derive `S.dimensions` from the preserved `S.boxSize` so a new box gets the right default for its size category.
+- Cold-boot guard: if `S.dimensions` is empty after state init, populate it from the lookup matching the default `S.boxSize` ("Medium" → "22×13×15 in").
+
+**Sheets row**
+- 15-column row shape unchanged. The size column shows the size name only (e.g. "Imperfect Box"); dimensions are not yet a separate Sheet column. Will be added when the EOS PDF export is built.
+
+---
+
+
 
 **Print-quality hotfix based on first real label printed**
 
