@@ -25,7 +25,7 @@ Data loss bugs before the container seals are serious.
 
 ## Current technical state
 
-- Single HTML file (~138KB): `index.html` deployed at https://marcoknauf82.github.io/box-packer/
+- Single HTML file (~141KB): `index.html` deployed at https://marcoknauf82.github.io/box-packer/
 - PWA with manifest and service worker (installable on Android)
 - No backend — all API calls go directly from browser to Anthropic, Google, and Supabase
 - No user accounts yet — single-user, single-move hardcoded
@@ -33,7 +33,10 @@ Data loss bugs before the container seals are serious.
 - Canvas labels rendered at 2× supersampled resolution for thermal-print sharpness (v20.1.1)
 - Photos compressed client-side to 1600px / 0.85q before upload (v20.2)
 - QR codes on labels link directly to the app (`?box=N` triggers detail view) (v20.2.1)
-- Current version: **v20.2.2**
+- Drive folder URL persisted back to Supabase after upload so QR scans show photo links (v20.2.3)
+- Canvas labels wrap summary + items to 2 lines with dynamic content budget; tested against all 23 real boxes (v20.2.4)
+- 23 boxes packed in first real session (Holiday Home, May 9, 2026)
+- Current version: **v20.2.4**
 
 ---
 
@@ -70,7 +73,7 @@ without checking all the places they are read and written.
 - `packed_at` date
 - `est_value_cents` integer — ALWAYS stored as integer cents, never dollars
 - `item_count` integer
-- `drive_folder_url` text
+- `drive_folder_url` text — populated by writeToSheet after Drive upload succeeds (v20.2.3)
 - `qr_url` text
 
 **box_items**
@@ -346,19 +349,29 @@ which keeps audit trail honest about which boxes had AI involvement.
 
 ---
 
-## Known issues (open as of v20.2.2)
+## Known issues (open as of v20.2.4)
 
-- Two dead constants in script: `ITEM_COUNTER = {}` and `counters = {A:0,B:0,C:1}`.
-  Unused; leaving to avoid needless edits. Remove in v21 cleanup.
+**Network / offline (v21 work — Holiday Home session May 9 confirmed all of these matter)**
+
+- No offline write queue. If WiFi drops between `getNextBoxNumber` and `INSERT`, the user
+  sees a red "supa-fail" bar and has to retry. Data isn't corrupted — Supabase is
+  source of truth — but state is awkward.
+- Per-photo Drive uploads can partially fail. Photo 1 might succeed and photo 2 fail
+  if connection drops mid-batch. The folder ends up with fewer photos than expected.
+  Box 14 hit this on May 9 (1 of 2 photos uploaded). No retry logic; user has to manually
+  upload missing photos to Drive.
+- "Connected" badge shows initial OAuth status, not current. Tokens expire after ~1 hour
+  and `writeToSheet` then 401s with no recovery path other than re-auth.
+- AI photo analysis (fetch to api.anthropic.com) has no retry. Network blip → "Failed
+  to fetch" toast → user must manually retry or skip-photos.
+
+**Code hygiene**
+
 - `getNextBoxNumber` + INSERT is not atomic. Race acceptable for single-user Phase 1
-  (Unique constraint catches it; user sees supa-fail on second submit).
+  (unique constraint catches it; user sees supa-fail on second submit).
 - Sheet formatting may still race on first write — pre-existing from v19.
-- Google OAuth re-consent occasionally required after scope upgrade.
 - Label PNG QR depends on api.qrserver.com availability — both in the preview canvas
   (#qr-cv) and in the rendered full label PNG. Same service as v19.
-- 2-copy / 4-copy print buttons stack labels onto a single PNG that doesn't print
-  correctly on Nelko thermal. Workaround: use "1 copy" only, set quantity inside the
-  Nelko app instead. Plan for v21 is to collapse to a single "Print label" button.
 
 ## Resolved (formerly known issues)
 
@@ -370,6 +383,20 @@ which keeps audit trail honest about which boxes had AI involvement.
   causing every save attempt to fail with a 400. Resolved by `alter column box_code
   drop not null`. Lesson: schema migrations can drop ALTER statements silently — verify
   with sanity-check SELECTs after every migration, not just by running the script.
+- ~~Holiday Home button tap was a no-op (regex over-escape in template literal).~~
+  Resolved in v20.2.2 (single-character fix on the render line).
+- ~~Drive folder URL not persisted to Supabase~~ — QR scans showed box detail without
+  a working photo link. Resolved in v20.2.3 by adding an UPDATE after Drive upload.
+- ~~Two dead constants in script (`ITEM_COUNTER`, `counters`)~~ — removed in v20.2.4.
+- ~~Label summary and item descriptions truncated with "..." on the printed label.~~
+  Resolved in v20.2.4 with 2-line wrapping + dynamic content budget. Tested against
+  all 23 real boxes — 0 truncations, 0 overflows, worst-case bottom margin 28px.
+- ~~2-copy / 4-copy print buttons stack labels onto a single PNG that doesn't print
+  correctly on Nelko thermal.~~ Resolved in v20.2.4 — collapsed to single "Print label"
+  button. User sets copy count inside the Nelko app instead.
+- ~~Drive upload failures logged only to console.warn.~~ Resolved in v20.2.4 — failures
+  surface as a prominent red error bar on the success screen, same treatment as Sheet
+  errors, with a link to Google Drive for manual verification.
 
 ## Lessons logged for v21+
 
@@ -384,6 +411,18 @@ which keeps audit trail honest about which boxes had AI involvement.
   bugs in May 2026 (box_code NOT NULL, owners column missing in v20.1) both stemmed
   from migration ALTER statements that silently failed or were skipped. Future
   migrations include a "run this SELECT to confirm columns exist" verification step.
+- **Layout math is not a substitute for testing against real data.** The original v20.2.4
+  used pure-math budget reasoning (sample summary + 8 items, all sized to fit). When
+  tested against the actual 23 boxes in the database with Liberation Sans (Arial-
+  equivalent metrics), 6 boxes overflowed the bottom edge because long book titles
+  wrap to 2 lines and stack up faster than expected. Replaced with a dynamic budget
+  that pre-measures every item and stops adding when overflow is imminent. Pattern
+  for future canvas/layout work: always run a measurement pass against real production
+  rows before shipping.
+- **Silent failures kill trust.** Drive errors that only went to `console.warn` meant
+  Marco was packing for hours before realizing some photos hadn't uploaded. Any background
+  operation whose failure would surprise the user later must surface visibly at the time
+  of failure. v20.2.4 fixed this for Drive; v21 should audit the rest.
 
 ## Visual theme (as of v20)
 
@@ -426,9 +465,11 @@ App chrome unchanged from v19:
 
 ---
 
-*Last updated: May 7, 2026 (v20.2.2 — hotfix for Holiday Home button regex; documented
-the bug pattern in the lessons section. Earlier today: 7-tile box size picker with
-dimensions, image compression, QR scan-to-lookup, skip-photos button, and final
-test-data wipe before real packing). Update this file whenever a significant
-architectural decision is made, a known issue is resolved, or a deferred item moves
-to active development.*
+*Last updated: May 12, 2026 (v20.2.4 — canvas label wrapping with dynamic content
+budget, single print button, visible Drive errors, dead code removed. Tested
+against all 23 real boxes from May 9 Holiday Home session before shipping.
+Earlier May work: drive_folder_url persistence (v20.2.3); Holiday Home button
+regex hotfix (v20.2.2); box sizes / image compression / QR scan-to-lookup /
+skip-photos (v20.2.1)). Update this file whenever a significant architectural
+decision is made, a known issue is resolved, or a deferred item moves to active
+development.*

@@ -14,6 +14,84 @@ Mark open bugs under **Known issues** at the bottom.
 
 ---
 
+## v20.2.4 — May 2026
+
+**Canvas label wrapping, dynamic content budget, single print button, visible Drive errors**
+
+No SQL migration. Canvas/UI-only changes.
+
+**The bug this fixes**
+
+The Holiday Home packing session (May 9, 21 boxes) exposed two problems with the v20.1.1 canvas renderer:
+- Summaries longer than ~22 characters were truncated with `…` on a single line (most notably "Business and academic..." on box 21)
+- Long item descriptions like "The Price Advantage — McKinsey & Company (hardcover)" got truncated mid-phrase
+
+Root cause: v20.1.1 grew the summary font from 38→54px without re-checking layout, and the contents loop used `truncateText` with a fixed `MAX_SHOW = 8` and single-line height.
+
+**The fix**
+
+- **Summary wraps to 2 lines** when needed. Font reduced from 54→48px so 2-line wrapping doesn't overflow vertically.
+- **Contents items wrap to 2 lines per item** within their column width. Font reduced from 30→26px and line height from 40→34px to absorb the extra wrapping.
+- **Dynamic item budget** replaces the fixed `MAX_SHOW`. The renderer reserves 384px of fixed bottom space (size/weight row + QR area + deliver-to footer), pre-measures every item's wrapped line count, and adds items greedily to whichever column is shorter — stopping when the next item plus a "+N more items" footer would overflow.
+- When items don't fit, the footer reads "+ N more item(s) (see QR for full list)" — teaches the unpacker that the QR is authoritative.
+
+**Tested against real data**
+
+Ran the wrap + budget algorithm against all 23 boxes already in the database (using Liberation Sans, which is metrically equivalent to Arial — the canvas's fallback when Inter isn't loaded). Results:
+- 0 boxes have truncated summaries (was 1 in v20.2.3: box 21)
+- 0 boxes overflow the 4×6 label (some configurations in pure-math testing would have)
+- 6 boxes show the "+N more" footer (the dense book/textbook boxes 7, 9, 12, 19, 20, 21)
+- 17 boxes show all items
+- Worst-case bottom margin: 28px (box 2)
+
+**Other changes**
+
+- **Single "Print label" button** — collapsed the 1-copy / 2-copies / 4-copies trio that had been broken since v20 (multi-label PNGs didn't print correctly on Nelko). Users set copy count inside the Nelko app instead.
+- **Drive upload failures get a prominent red bar** on the success screen, same red treatment as Sheet errors. Previously Drive errors were logged to `console.warn` only and would silently drop photos for entire packing sessions.
+- **Two dead constants removed**: `ITEM_COUNTER = {}` and `counters = {A:0,B:0,C:1}`. Both unused since pre-v20.
+
+**Existing labels (boxes 1–23)**
+
+Don't need reprinting. The QR data is identical and scans to the same Supabase row. Only cosmetic difference is the truncated summary on a few labels. Reprint individual boxes only if the truncation creates genuine ambiguity.
+
+**New helper functions**
+
+- `wrapTextLines(ctx, text, maxWidth, maxLines)` — pure measurement helper that returns the array of wrapped lines (with "…" on the last line if truncated). Used by both `fillTextWrapped` and the new dynamic budget loop.
+- `measureWrappedLineCount` — thin wrapper for layout-planning callers that only need a count.
+
+---
+
+## v20.2.3 — May 2026
+
+**Hotfix: Drive folder URL not persisting to Supabase**
+
+Adds idempotent SQL (run before deploying):
+
+```sql
+alter table boxes add column if not exists drive_folder_url text;
+alter table standalone_items add column if not exists drive_folder_url text;
+```
+
+**Bug**
+
+When you scanned the QR code on a box label, the detail screen didn't show a link to that box's Drive folder, even though photos had successfully uploaded to Drive.
+
+**Cause**
+
+The save flow created the Drive folder, uploaded photos, and stored the folder URL in `S.driveFolderUrl` for the success screen — but **never wrote it back to Supabase**. Box rows always had `drive_folder_url = NULL`, so subsequent detail loads (including QR scans) had nothing to display.
+
+**Fix**
+
+After Drive upload succeeds, `writeToSheet` now issues an `UPDATE boxes SET drive_folder_url = ?` (or the equivalent on `standalone_items`) before continuing. Persists for future detail loads and QR scans. Wrapped in its own try/catch so a failure here doesn't block the rest of the save flow.
+
+**Note for boxes 1-N**
+
+Box 1 was the only test box that needed a manual backfill — DEPLOY_v20_2_3.md included the SQL to set its `drive_folder_url` manually if desired. Box 2 onward all populate automatically.
+
+---
+
+
+
 ## v20.2.2 — May 2026
 
 **Hotfix: Holiday Home button tap was a no-op**

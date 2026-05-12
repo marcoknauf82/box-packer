@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Aachen Move — Box Packer v20.2.3</title>
+<title>Aachen Move — Box Packer v20.2.4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -186,7 +186,7 @@ input,select,textarea{font-family:inherit}
 <body>
 <div class="app">
   <div class="top-bar">
-    <div><div class="top-title">Box Packer</div><div class="top-sub">Aachen move · v20.2.3</div></div>
+    <div><div class="top-title">Box Packer</div><div class="top-sub">Aachen move · v20.2.4</div></div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
       <div id="top-stats" style="font-size:12px;color:var(--muted);text-align:right"></div>
       <div id="auth-indicator"></div>
@@ -224,7 +224,6 @@ const ROOT_FOLDER_NAME = "Aachen Move";
 const REGISTRY_SHEET = "Box Registry";
 const ITEMS_SHEET = "Item Detail";
 const ITEM_REGISTRY_SHEET = "Item Registry";
-const ITEM_COUNTER = {};
 
 // Tier system (v20): five tiers A-E, all monochrome.
 // `sub` is the two-line action-oriented subtitle shown on the label badge.
@@ -259,7 +258,6 @@ const BOX_SIZES = [
   { name: "Oversized",    dims: null,             needsPrompt: true  },
 ];
 
-const counters = {A:0,B:0,C:1};
 let googleToken = null;
 let googleUser = null;
 
@@ -1002,7 +1000,6 @@ function v4(){
     ?`<div class="status-bar status-ok">
         ${isItem?"Item":"Box"} ${esc(S.boxId)} saved · ${totalVal?`Est. value: <strong>$${totalVal.toLocaleString()}</strong>`:"no value set"}
         ${S.driveFolderUrl?` · <a href="${S.driveFolderUrl}" target="_blank" style="color:var(--text);font-weight:600">📷 Drive</a>`:""}
-        ${S.driveError?`<br><span style="font-size:11px;opacity:.8">Drive error: ${esc(S.driveError)}</span>`:""}
       </div>`
     :S.sheetResult==="supa-ok"
     ?`<div class="status-bar status-ok">Saved to Supabase · Sheets not connected. <a href="${SHEET_URL}" target="_blank" style="color:var(--text);font-weight:600">Open sheet</a></div>`
@@ -1011,6 +1008,8 @@ function v4(){
     :S.sheetResult==="supa-fail"
     ?`<div class="status-bar status-err">Supabase save failed — check console. Label below is a preview only, data NOT yet saved.</div>`
     :`<div class="status-bar status-err">Sheet write failed: ${esc(S.sheetResult)} — <a href="${SHEET_URL}" target="_blank" style="color:var(--rd);text-decoration:underline">open sheet</a> to add manually</div>`}
+
+  ${S.driveError?`<div class="status-bar status-err" style="margin-top:8px"><strong>Photos may not have uploaded:</strong> ${esc(S.driveError)} — verify in <a href="https://drive.google.com" target="_blank" style="color:var(--rd);text-decoration:underline">Google Drive</a></div>`:""}
 
   <!-- v20 label preview (monochrome 4×6 portrait) -->
   <div class="v20-label">
@@ -1056,12 +1055,8 @@ function v4(){
 
   <div style="background:var(--yellow);border:1px solid var(--yellow-dark);border-radius:12px;padding:1rem;margin-bottom:1rem">
     <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px">Print to Nelko PL70e</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px">
-      <button class="btn btn-success" id="btn-print1">1 copy</button>
-      <button class="btn btn-success" id="btn-print2">2 copies</button>
-      <button class="btn btn-success" id="btn-print4">4 copies</button>
-    </div>
-    <div style="font-size:11px;color:var(--text);text-align:center;opacity:.7">Tap to share PNG to NELKO app (or Shipping Printer Pro)</div>
+    <button class="btn btn-success" id="btn-print" style="width:100%;margin-bottom:8px">Print label</button>
+    <div style="font-size:11px;color:var(--text);text-align:center;opacity:.7">Set copy count inside the Nelko app · Share to NELKO or Shipping Printer Pro</div>
   </div>
   <button class="btn btn-secondary" id="btn-dl" style="margin-bottom:8px">Download label PNG</button>
   <div style="display:flex;gap:8px">
@@ -1259,9 +1254,7 @@ function bind(){
   qq(".item-edit-btn").forEach(b=>b.addEventListener("click",()=>openEdit(+b.dataset.ei)));
   // Step 4
   q("#btn-dl")?.addEventListener("click",downloadLabel);
-  q("#btn-print1")?.addEventListener("click",()=>printLabel(1));
-  q("#btn-print2")?.addEventListener("click",()=>printLabel(2));
-  q("#btn-print4")?.addEventListener("click",()=>printLabel(4));
+  q("#btn-print")?.addEventListener("click",()=>printLabel(1));
   q("#btn-next-box")?.addEventListener("click",nextBox);
   q("#btn-back-menu")?.addEventListener("click",()=>{
     if(S.detailBox && S.detailBox.id === S.boxId){
@@ -2348,13 +2341,17 @@ function drawLabelOnCanvas(ctx, ox, oy, LW, LH, qrImg){
 
   y += 258;
 
-  // ── SUMMARY (bold, centered) ─────────────────────────────
+  // ── SUMMARY (bold, centered, up to 2 lines) ──────────────
+  // v20.2.4: 2-line wrap restored after the v20.1.1 font bump caused single-line truncation.
   ctx.fillStyle = "#000000";
-  ctx.font = "700 54px Inter, Arial, sans-serif";
+  ctx.font = "700 48px Inter, Arial, sans-serif";
   ctx.textAlign = "center";
   const summary = S.shortSummary || S.desc || "—";
-  fillTextWrapped(ctx, summary, ox + LW/2, y + 42, LW - PAD*2 - 40, 60, 1);
-  y += 78;
+  // Measure to decide actual line count consumed so we can advance y correctly
+  const summaryLines = measureWrappedLineCount(ctx, summary, LW - PAD*2 - 40, 2);
+  const summaryStartY = y + 42;
+  fillTextWrapped(ctx, summary, ox + LW/2, summaryStartY, LW - PAD*2 - 40, 56, 2);
+  y = summaryStartY + (summaryLines - 1) * 56 + 36;
   ctx.textAlign = "left";
 
   // ── PACKED FROM BAND (solid black, white text) ───────────
@@ -2406,28 +2403,58 @@ function drawLabelOnCanvas(ctx, ox, oy, LW, LH, qrImg){
   ctx.fillText(contentsLabel, ox + PAD, y + 22);
   y += 38;
 
-  // Two columns — up to 8 items (4 per col)
-  const MAX_SHOW = 8;
-  const itemsToShow = isItem ? [S.singleCategory || "Item"] : active.slice(0, MAX_SHOW).map(String);
-  const extra = isItem ? 0 : Math.max(0, active.length - MAX_SHOW);
-  if(extra > 0) itemsToShow.push("+" + extra + " more items");
+  // v20.2.4: dynamic item budget. Reserve fixed bottom space for size/weight + QR + deliver-to,
+  // then add items until the column would overflow. Real testing on 23 boxes showed fixed
+  // MAX_SHOW caused 6/23 to overflow when long book titles wrapped.
+  const RESERVED_BOTTOM_PX = 384; // size+weight(62) + QR(220+30) + deliver-to(72)
+  const itemsZoneBottom = oy + LH - PAD - RESERVED_BOTTOM_PX;
+  const allItems = isItem ? [S.singleCategory || "Item"] : active.map(String);
   const colW = (LW - PAD*2 - 30) / 2;
   const colX1 = ox + PAD;
   const colX2 = ox + PAD + colW + 30;
-  const rowH = 40;
+  const lineH = 34;
+  const itemGap = 6;
   ctx.fillStyle = "#000000";
-  ctx.font = "400 30px Inter, Arial, sans-serif";
-  const half = Math.ceil(itemsToShow.length / 2);
-  const contentsStartY = y + 32;
-  for(let i = 0; i < itemsToShow.length; i++){
-    const inLeft = i < half;
-    const colX = inLeft ? colX1 : colX2;
-    const rIdx = inLeft ? i : (i - half);
-    const text = "· " + itemsToShow[i];
-    const maxW = colW;
-    ctx.fillText(truncateText(ctx, text, maxW), colX, contentsStartY + rIdx * rowH);
+  ctx.font = "400 26px Inter, Arial, sans-serif";
+  // Pre-measure each item's line count
+  const measured = allItems.map(item => {
+    const text = "· " + item;
+    return { text, lines: wrapTextLines(ctx, text, colW, 2) };
+  });
+  // Greedy fit: alternate columns, stop when adding would overflow either column
+  let yLeft = y + 32;
+  let yRight = y + 32;
+  let fittedCount = 0;
+  for(let i = 0; i < measured.length; i++){
+    const inLeft = fittedCount % 2 === 0; // alternate strict
+    // Actually preserve "first half left, second half right" for readability:
+    // we'll do this by pre-computing how many we want and splitting; but we don't
+    // know that yet. Instead, just check both columns and pick the shorter one.
+    const useLeft = yLeft <= yRight;
+    const advance = measured[i].lines.length * lineH + itemGap;
+    const newY = (useLeft ? yLeft : yRight) + advance;
+    // Leave room for "+N more items" footer (one line = 34px) if any won't fit
+    const willHaveMore = (i < measured.length - 1) ? lineH + itemGap : 0;
+    if(newY + willHaveMore > itemsZoneBottom){
+      break;
+    }
+    const colX = useLeft ? colX1 : colX2;
+    const startY = useLeft ? yLeft : yRight;
+    measured[i].lines.forEach((ln, li) => ctx.fillText(ln, colX, startY + li * lineH));
+    if(useLeft) yLeft = newY; else yRight = newY;
+    fittedCount++;
   }
-  y = contentsStartY + half * rowH + 12;
+  // "+N more items" indicator if anything didn't fit
+  const overflow = allItems.length - fittedCount;
+  if(overflow > 0){
+    const moreY = Math.max(yLeft, yRight);
+    ctx.fillStyle = "#555555";
+    ctx.font = "400 24px Inter, Arial, sans-serif";
+    ctx.fillText("+ " + overflow + " more item" + (overflow === 1 ? "" : "s") + " (see QR for full list)", colX1, moreY + 4);
+    y = moreY + 34;
+  } else {
+    y = Math.max(yLeft, yRight) + 6;
+  }
 
   // ── SIZE / WEIGHT ROW ────────────────────────────────────
   ctx.strokeStyle = "#000000";
@@ -2515,7 +2542,10 @@ function drawLabelOnCanvas(ctx, ox, oy, LW, LH, qrImg){
 }
 
 // Wraps text into up to `maxLines` lines, centered at x. Appends "…" if truncated.
-function fillTextWrapped(ctx, text, x, y, maxWidth, lineHeight, maxLines){
+// Wrap a string into at most maxLines lines fitting maxWidth.
+// Returns the array of lines (with "…" on the last line if truncated).
+// Pure measurement — does not draw.
+function wrapTextLines(ctx, text, maxWidth, maxLines){
   const words = String(text).split(/\s+/);
   const lines = [];
   let current = "";
@@ -2524,12 +2554,9 @@ function fillTextWrapped(ctx, text, x, y, maxWidth, lineHeight, maxLines){
     const w = words[i];
     const trial = current ? current + " " + w : w;
     if(ctx.measureText(trial).width > maxWidth && current){
-      // Line full — start a new one
       if(lines.length + 1 >= maxLines){
-        // Can't start another line without exceeding maxLines.
-        // Finalize `current` and mark truncation.
         lines.push(current);
-        didTruncate = i < words.length; // more words left
+        didTruncate = i < words.length;
         current = "";
         break;
       }
@@ -2547,7 +2574,19 @@ function fillTextWrapped(ctx, text, x, y, maxWidth, lineHeight, maxLines){
     }
     lines[lines.length-1] = last + "…";
   }
+  return lines;
+}
+
+// Measure how many lines `text` would consume when wrapped to maxWidth, up to maxLines.
+// Cheap helper for layout planning.
+function measureWrappedLineCount(ctx, text, maxWidth, maxLines){
+  return wrapTextLines(ctx, text, maxWidth, maxLines).length;
+}
+
+function fillTextWrapped(ctx, text, x, y, maxWidth, lineHeight, maxLines){
+  const lines = wrapTextLines(ctx, text, maxWidth, maxLines);
   lines.forEach((ln, i) => ctx.fillText(ln, x, y + i * lineHeight));
+  return lines.length;
 }
 
 // Truncate a single line of text to fit maxWidth, appending "…" if cut.
