@@ -14,6 +14,51 @@ Mark open bugs under **Known issues** at the bottom.
 
 ---
 
+## v20.2.5 — May 2026
+
+**Network resilience: OAuth expiry visibility + per-photo retry with counter**
+
+No SQL migration. Targets the silent failure modes that hit Marco repeatedly during the May 9 Holiday Home session.
+
+**The two failure modes this addresses**
+
+1. *Silent OAuth expiry.* Google access tokens expire after ~1 hour. The v20.2.4 app showed "connected" forever after the initial auth, even when the token was dead. Marco packed multiple boxes on May 9 unaware that Sheets writes were 401'ing in the background.
+2. *Single-attempt photo uploads.* Drive uploads ran in a `for` loop with no retry. On May 9, box 14 ended with 1 of 2 photos uploaded because connection blipped between the two — no recovery, no surfaced error.
+
+**OAuth expiry visibility**
+
+- New module-level `googleTokenExpired` flag, flipped to `true` by `markTokenExpired()` whenever a Google API call returns 401.
+- Three catch sites added: `writeToSheet` outer catch, Drive folder/upload catch, and the per-photo retry loop. All call `markTokenExpired()` when `is401()` detects the status code.
+- Auth badge in the top bar renders red ("Re-authenticate") when the flag is set, green otherwise. Tapping the red badge runs the existing OAuth flow.
+- On the label screen, a banner appears: "Google session expired. Tap the red Re-authenticate button at the top to reconnect before the next box. Existing data is safe — Supabase has everything."
+- Flag resets to `false` on successful re-auth (callback in `startGoogleAuth`).
+
+**Per-photo retry with counter**
+
+- `uploadPhotosToDrive` rewritten to delegate to a new `uploadSinglePhotoWithRetry(folderId, photoIndex)` helper that tries each photo up to 3 times with exponential backoff (500ms, 1500ms).
+- Returns `{uploaded, total, failed: [indices]}` rather than nothing. Stored on `S.photoUploadResult`.
+- 401 detected mid-retry exits the retry loop immediately for that photo (no point retrying with a dead token) and flips `googleTokenExpired`. Subsequent photos in the same batch also fast-fail.
+- Success screen renders a new counter bar:
+  - Green: "📷 N of N photos uploaded to Drive" when everything went through (positive signal even on a clean run — Marco wanted to know things worked, not just that they didn't fail)
+  - Red: "📷 Only X of Y photos uploaded — missing: photos 2, 4. Re-take or re-pack to retry." when permanent failures remain after retries
+- Field added to initial state, menu-pack reset, and nextBox reset.
+
+**Helpers added**
+
+- `markTokenExpired()` — idempotent flag flip + auth badge re-render via `updateTopStats`.
+- `is401(respOrErr)` — accepts either a `Response` (checks `.status`) or an Error (looks for "401" in `.message`). Pattern matches the existing throw shape `new Error(resp.status + ": " + body)`.
+- `uploadSinglePhotoWithRetry(folderId, photoIndex)` — extracted single-photo upload with 3-attempt retry.
+
+**What this deliberately doesn't fix (v21 work)**
+
+- Full offline write queue. If Supabase itself is unreachable, save still fails with red bar — no retry-on-reconnect.
+- AI photo analysis fetch is single-attempt. No retry there yet.
+- Proactive token refresh. Still wait for a 401 to know. Google Identity Services doesn't expose token expiry timestamp without re-prompting consent, so a "5-minute warning" requires additional engineering.
+
+---
+
+
+
 ## v20.2.4 — May 2026
 
 **Canvas label wrapping, dynamic content budget, single print button, visible Drive errors**

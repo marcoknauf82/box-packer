@@ -25,7 +25,7 @@ Data loss bugs before the container seals are serious.
 
 ## Current technical state
 
-- Single HTML file (~141KB): `index.html` deployed at https://marcoknauf82.github.io/box-packer/
+- Single HTML file (~146KB): `index.html` deployed at https://marcoknauf82.github.io/box-packer/
 - PWA with manifest and service worker (installable on Android)
 - No backend — all API calls go directly from browser to Anthropic, Google, and Supabase
 - No user accounts yet — single-user, single-move hardcoded
@@ -35,8 +35,9 @@ Data loss bugs before the container seals are serious.
 - QR codes on labels link directly to the app (`?box=N` triggers detail view) (v20.2.1)
 - Drive folder URL persisted back to Supabase after upload so QR scans show photo links (v20.2.3)
 - Canvas labels wrap summary + items to 2 lines with dynamic content budget; tested against all 23 real boxes (v20.2.4)
-- 23 boxes packed in first real session (Holiday Home, May 9, 2026)
-- Current version: **v20.2.4**
+- OAuth expiry surfaces visibly in top bar + label screen; per-photo upload retry (3 attempts) with visible "N of N" counter (v20.2.5)
+- 23 boxes packed in first real session (Holiday Home, May 9, 2026); session 2 (Hudson) started May 12
+- Current version: **v20.2.5**
 
 ---
 
@@ -349,21 +350,13 @@ which keeps audit trail honest about which boxes had AI involvement.
 
 ---
 
-## Known issues (open as of v20.2.4)
+## Known issues (open as of v20.2.5)
 
-**Network / offline (v21 work — Holiday Home session May 9 confirmed all of these matter)**
+**Network / offline (remaining v21 work)**
 
-- No offline write queue. If WiFi drops between `getNextBoxNumber` and `INSERT`, the user
-  sees a red "supa-fail" bar and has to retry. Data isn't corrupted — Supabase is
-  source of truth — but state is awkward.
-- Per-photo Drive uploads can partially fail. Photo 1 might succeed and photo 2 fail
-  if connection drops mid-batch. The folder ends up with fewer photos than expected.
-  Box 14 hit this on May 9 (1 of 2 photos uploaded). No retry logic; user has to manually
-  upload missing photos to Drive.
-- "Connected" badge shows initial OAuth status, not current. Tokens expire after ~1 hour
-  and `writeToSheet` then 401s with no recovery path other than re-auth.
-- AI photo analysis (fetch to api.anthropic.com) has no retry. Network blip → "Failed
-  to fetch" toast → user must manually retry or skip-photos.
+- No offline write queue for Supabase. If WiFi drops between `getNextBoxNumber` and `INSERT`, the user still sees a red "supa-fail" bar and has to retry. Data isn't corrupted — Supabase is source of truth — but state is awkward and there's no retry-on-reconnect.
+- AI photo analysis fetch (to api.anthropic.com) is still single-attempt. Network blip → "Failed to fetch" toast → user must manually retry or skip-photos.
+- OAuth refresh is reactive, not proactive. Token-expired flag flips only after a 401 actually comes back. A "5-minute warning before expiry" would require Google's OAuth2 client to expose the expiry timestamp, which it doesn't directly. Worst case under v20.2.5: one box's photos fail to upload before the badge turns red.
 
 **Code hygiene**
 
@@ -397,6 +390,11 @@ which keeps audit trail honest about which boxes had AI involvement.
 - ~~Drive upload failures logged only to console.warn.~~ Resolved in v20.2.4 — failures
   surface as a prominent red error bar on the success screen, same treatment as Sheet
   errors, with a link to Google Drive for manual verification.
+- ~~"Connected" badge always green, even when token expired.~~ Resolved in v20.2.5 —
+  badge turns red on 401, flag resets only on successful re-auth.
+- ~~Per-photo Drive uploads can partially fail with no retry.~~ Resolved in v20.2.5 —
+  each photo gets 3 attempts with exponential backoff; failed indices surface in a
+  visible counter ("📷 Only 1 of 2 photos uploaded — missing: photo 2").
 
 ## Lessons logged for v21+
 
@@ -419,10 +417,8 @@ which keeps audit trail honest about which boxes had AI involvement.
   that pre-measures every item and stops adding when overflow is imminent. Pattern
   for future canvas/layout work: always run a measurement pass against real production
   rows before shipping.
-- **Silent failures kill trust.** Drive errors that only went to `console.warn` meant
-  Marco was packing for hours before realizing some photos hadn't uploaded. Any background
-  operation whose failure would surprise the user later must surface visibly at the time
-  of failure. v20.2.4 fixed this for Drive; v21 should audit the rest.
+- **Silent failures kill trust — surface them at the moment of failure, not later.** Drive errors going to `console.warn` only meant Marco packed for hours on May 9 unaware that photos hadn't uploaded. The same was true of OAuth token expiry — the "connected" badge stayed green long after the token died. v20.2.4 surfaced Drive errors with a red bar; v20.2.5 surfaced OAuth expiry with a red badge + label-screen banner + cleared token. Pattern for future work: any background operation whose failure would surprise the user later must surface visibly at the time of failure, AND provide a positive-feedback signal when it succeeds (e.g. v20.2.5's green "📷 N of N photos uploaded" bar — Marco wanted to know things were working, not just that they weren't broken).
+- **Retry once, retry quickly, retry visibly.** v20.2.5's per-photo retry uses 3 attempts with 500ms / 1500ms backoff — total worst-case ~4 seconds per photo. Long enough to recover from a typical mobile WiFi blip, short enough that the user doesn't notice. The visible counter ("📷 3 of 4 uploaded") tells the user the outcome without exposing the retry mechanics. Apply this pattern to AI photo analysis and any other single-fetch network call in v21.
 
 ## Visual theme (as of v20)
 
@@ -465,11 +461,11 @@ App chrome unchanged from v19:
 
 ---
 
-*Last updated: May 12, 2026 (v20.2.4 — canvas label wrapping with dynamic content
-budget, single print button, visible Drive errors, dead code removed. Tested
-against all 23 real boxes from May 9 Holiday Home session before shipping.
-Earlier May work: drive_folder_url persistence (v20.2.3); Holiday Home button
-regex hotfix (v20.2.2); box sizes / image compression / QR scan-to-lookup /
-skip-photos (v20.2.1)). Update this file whenever a significant architectural
-decision is made, a known issue is resolved, or a deferred item moves to active
-development.*
+*Last updated: May 12, 2026 (v20.2.5 — OAuth expiry visibility + per-photo upload
+retry with visible counter, targeting the silent failure modes Marco hit on May 9.
+Builds on v20.2.4 (canvas label wrapping with dynamic content budget, single print
+button, visible Drive errors, dead code removed). Earlier May work: drive_folder_url
+persistence (v20.2.3); Holiday Home button regex hotfix (v20.2.2); box sizes / image
+compression / QR scan-to-lookup / skip-photos (v20.2.1)). Update this file whenever
+a significant architectural decision is made, a known issue is resolved, or a
+deferred item moves to active development.*

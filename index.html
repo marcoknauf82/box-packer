@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Aachen Move — Box Packer v20.2.4</title>
+<title>Aachen Move — Box Packer v20.2.5</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -186,7 +186,7 @@ input,select,textarea{font-family:inherit}
 <body>
 <div class="app">
   <div class="top-bar">
-    <div><div class="top-title">Box Packer</div><div class="top-sub">Aachen move · v20.2.4</div></div>
+    <div><div class="top-title">Box Packer</div><div class="top-sub">Aachen move · v20.2.5</div></div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
       <div id="top-stats" style="font-size:12px;color:var(--muted);text-align:right"></div>
       <div id="auth-indicator"></div>
@@ -260,6 +260,27 @@ const BOX_SIZES = [
 
 let googleToken = null;
 let googleUser = null;
+// v20.2.5: flipped to true when any Google API call returns 401 (token expired).
+// Drives the red "Re-authenticate" state of the auth badge.
+let googleTokenExpired = false;
+
+// v20.2.5: helper — call from any catch block where err might indicate a 401.
+// Flips googleTokenExpired and re-renders so the badge updates immediately.
+function markTokenExpired(){
+  if(googleTokenExpired) return; // idempotent
+  googleTokenExpired = true;
+  googleToken = null; // force re-auth on next attempt
+  console.warn("Google token expired — flagging for re-auth");
+  // Trigger re-render of just the auth badge
+  updateTopStats();
+}
+
+// v20.2.5: detect 401 in either fetch response or thrown error message.
+function is401(respOrErr){
+  if(respOrErr && typeof respOrErr.status === "number") return respOrErr.status === 401;
+  const msg = String(respOrErr && respOrErr.message || respOrErr || "");
+  return msg.indexOf("401") !== -1;
+}
 
 let S = {
   screen:"menu", // "menu", "pack", "registry", "registry-detail", "documents"
@@ -277,6 +298,7 @@ let S = {
   boxNumber:null,     // integer (boxes only)
   packedAt:null,      // ISO timestamp set at confirm
   sheetResult:"", editingItem:null, driveFolderUrl:"", driveError:"",
+  photoUploadResult: null, // v20.2.5: {uploaded, total, failed: [indices]} after Drive batch
   registry:[],
   detailBox:null, detailItems:[], detailLoading:false,
   // Cache of origin rooms per home, loaded from Supabase
@@ -357,7 +379,10 @@ function updateTopStats(){
     TIER_KEYS.map(t=>`<span style="color:${TIER[t].dot}">${t}:${ca[t]}</span>`).join(" ");
   const ai=document.getElementById("auth-indicator");
   if(ai){
-    if(googleUser){
+    if(googleUser && googleTokenExpired){
+      // v20.2.5: token expired — red, prominent, prompt to re-auth
+      ai.innerHTML=`<div class="auth-badge" onclick="startGoogleAuth()" title="Token expired — tap to re-authenticate" style="cursor:pointer;background:#FEE2E2;border:1.5px solid #DC2626;color:#991B1B;font-weight:600"><svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="6" fill="#DC2626"/><path d="M6 3v3M6 8v.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg>Re-authenticate</div>`;
+    } else if(googleUser){
       ai.innerHTML=`<div class="auth-badge" onclick="startGoogleAuth()" title="Click to reconnect" style="cursor:pointer"><svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="6" fill="#1D9E75"/><path d="M3 6l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>${esc(googleUser.split("@")[0])} ↺</div>`;
     } else {
       ai.innerHTML="";
@@ -1011,6 +1036,16 @@ function v4(){
 
   ${S.driveError?`<div class="status-bar status-err" style="margin-top:8px"><strong>Photos may not have uploaded:</strong> ${esc(S.driveError)} — verify in <a href="https://drive.google.com" target="_blank" style="color:var(--rd);text-decoration:underline">Google Drive</a></div>`:""}
 
+  ${S.photoUploadResult && S.photoUploadResult.total > 0 ? (() => {
+    const r = S.photoUploadResult;
+    if(r.failed.length === 0){
+      return `<div class="status-bar status-ok" style="margin-top:8px">📷 ${r.uploaded} of ${r.total} photo${r.total===1?"":"s"} uploaded to Drive</div>`;
+    }
+    return `<div class="status-bar status-err" style="margin-top:8px"><strong>📷 Only ${r.uploaded} of ${r.total} photos uploaded</strong> — missing: photo${r.failed.length===1?"":"s"} ${r.failed.map(i=>i+1).join(", ")}. Re-take or re-pack to retry.</div>`;
+  })() : ""}
+
+  ${googleTokenExpired ? `<div class="status-bar status-err" style="margin-top:8px"><strong>Google session expired.</strong> Tap the red "Re-authenticate" button at the top to reconnect before the next box. Existing data is safe — Supabase has everything.</div>` : ""}
+
   <!-- v20 label preview (monochrome 4×6 portrait) -->
   <div class="v20-label">
     <div class="v20-hd">
@@ -1111,6 +1146,7 @@ function bind(){
     S.clarifications=[]; S.clarifyIdx=0;
     S.boxId=""; S.boxNumber=null; S.packedAt=null;
     S.sheetResult=""; S.editingItem=null; S.driveFolderUrl=""; S.driveError="";
+    S.photoUploadResult = null; // v20.2.5
     S.weightKg=null;
     // v20.2: dimensions auto-populate from boxSize lookup; clear so new box redoes lookup
     const sz = BOX_SIZES.find(s=>s.name===S.boxSize);
@@ -1278,6 +1314,7 @@ function startGoogleAuth(){
     callback:(resp)=>{
       if(resp.error){toast("Google auth failed: "+resp.error);return;}
       googleToken=resp.access_token;
+      googleTokenExpired = false; // v20.2.5: reset expiry flag on successful re-auth
       fetchGoogleUserInfo();
     }
   });
@@ -1309,7 +1346,12 @@ async function writeToSheet(){
         driveFolderId = folderId;
         driveFolderUrl = "https://drive.google.com/drive/folders/" + folderId;
         S.driveFolderUrl = driveFolderUrl;
-        await uploadPhotosToDrive(folderId);
+        // v20.2.5: capture per-photo upload result for visible counter on success screen
+        const photoResult = await uploadPhotosToDrive(folderId);
+        S.photoUploadResult = photoResult;
+        if(photoResult.failed.length > 0){
+          S.driveError = `${photoResult.failed.length} of ${photoResult.total} photos failed to upload after 3 retries`;
+        }
         // v20.2.3: persist drive_folder_url back to Supabase so it shows on the
         // detail screen later (e.g. when you scan the QR code).
         try {
@@ -1323,7 +1365,11 @@ async function writeToSheet(){
               .eq("move_id", MOVE_ID).eq("box_number", S.boxNumber);
           }
         } catch(ue){ console.warn("drive_folder_url update failed:", ue.message); }
-      }catch(de){console.warn("Drive upload failed:",de.message);S.driveError=de.message;}
+      }catch(de){
+        console.warn("Drive upload failed:",de.message);
+        S.driveError=de.message;
+        if(is401(de)) markTokenExpired(); // v20.2.5
+      }
     }
     // Ensure headers exist on first write
     await ensureHeaders();
@@ -1361,6 +1407,8 @@ async function writeToSheet(){
     S.sheetResult="ok";
   }catch(e){
     S.sheetResult=e.message||"unknown error";
+    // v20.2.5: surface 401s as a token expiry that needs re-auth, not just a generic error
+    if(is401(e)) markTokenExpired();
   }
   S.step=4;r();setTimeout(drawQR,50);
 }
@@ -1576,33 +1624,71 @@ async function findOrMakeFolder(name, parentId){
   return created.id;
 }
 
+// v20.2.5: per-photo retry with 3 attempts each, returns {uploaded, total, failed}.
+// Caller surfaces partial-upload state via S.photoUploadResult.
 async function uploadPhotosToDrive(folderId){
-  for(let i=0;i<S.photos.length;i++){
-    const dataUrl = S.photos[i];
-    const [meta, b64] = dataUrl.split(",");
-    const mimeType = meta.match(/:(.*?);/)[1];
-    const ext = mimeType.includes("png") ? "png" : "jpg";
-    const filename = `${S.boxId}_photo${i+1}.${ext}`;
-    // Convert base64 to blob
-    const byteStr = atob(b64);
-    const arr = new Uint8Array(byteStr.length);
-    for(let j=0;j<byteStr.length;j++) arr[j]=byteStr.charCodeAt(j);
-    const blob = new Blob([arr],{type:mimeType});
-    // Multipart upload
-    const boundary = "bound" + Date.now();
-    const metaPart = JSON.stringify({name:filename,parents:[folderId]});
-    const formData = new FormData();
-    formData.append("metadata", new Blob([metaPart],{type:"application/json"}));
-    formData.append("file", blob, filename);
-    const uploadResp = await fetch(
-      "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name",{
-        method:"POST",
-        headers:{"Authorization":"Bearer "+googleToken},
-        body:formData
-      }
-    );
-    if(!uploadResp.ok){const e=await uploadResp.text();console.warn("Photo upload failed:",e.slice(0,100));}
+  const total = S.photos.length;
+  let uploaded = 0;
+  const failedIndices = [];
+  for(let i = 0; i < total; i++){
+    const ok = await uploadSinglePhotoWithRetry(folderId, i);
+    if(ok) uploaded++;
+    else failedIndices.push(i);
   }
+  return { uploaded, total, failed: failedIndices };
+}
+
+// v20.2.5: tries 3 times with exponential backoff (500ms, 1500ms).
+// Returns true on success, false after all retries exhausted.
+// Throws only if a 401 is detected — caller flips token-expired flag.
+async function uploadSinglePhotoWithRetry(folderId, photoIndex){
+  const dataUrl = S.photos[photoIndex];
+  const [meta, b64] = dataUrl.split(",");
+  const mimeType = meta.match(/:(.*?);/)[1];
+  const ext = mimeType.includes("png") ? "png" : "jpg";
+  const filename = `${S.boxId}_photo${photoIndex+1}.${ext}`;
+  // Convert base64 → blob once, reuse across retries
+  const byteStr = atob(b64);
+  const arr = new Uint8Array(byteStr.length);
+  for(let j = 0; j < byteStr.length; j++) arr[j] = byteStr.charCodeAt(j);
+  const blob = new Blob([arr], { type: mimeType });
+
+  const MAX_ATTEMPTS = 3;
+  for(let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++){
+    try {
+      const metaPart = JSON.stringify({ name: filename, parents: [folderId] });
+      const formData = new FormData();
+      formData.append("metadata", new Blob([metaPart], { type: "application/json" }));
+      formData.append("file", blob, filename);
+      const uploadResp = await fetch(
+        "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name",{
+          method:"POST",
+          headers:{"Authorization":"Bearer "+googleToken},
+          body:formData
+        }
+      );
+      if(uploadResp.ok){
+        if(attempt > 1) console.log(`Photo ${photoIndex+1} succeeded on attempt ${attempt}`);
+        return true;
+      }
+      // Hard fail on 401 — token expired, no point retrying
+      if(uploadResp.status === 401){
+        markTokenExpired();
+        console.warn(`Photo ${photoIndex+1} failed: 401 (token expired) — abandoning retries`);
+        return false;
+      }
+      const errText = await uploadResp.text();
+      console.warn(`Photo ${photoIndex+1} attempt ${attempt}/${MAX_ATTEMPTS} failed: ${uploadResp.status} ${errText.slice(0,80)}`);
+    } catch(e) {
+      console.warn(`Photo ${photoIndex+1} attempt ${attempt}/${MAX_ATTEMPTS} threw: ${e.message}`);
+      if(is401(e)){ markTokenExpired(); return false; }
+    }
+    // Backoff before next attempt (500ms then 1500ms)
+    if(attempt < MAX_ATTEMPTS){
+      await new Promise(r => setTimeout(r, attempt === 1 ? 500 : 1500));
+    }
+  }
+  return false;
 }
 
 async function batchUpdate(requests){
@@ -2698,6 +2784,7 @@ function nextBox(){
     clarifications:[], clarifyIdx:0,
     boxId:"", boxNumber:null, packedAt:null,
     sheetResult:"", editingItem:null, driveFolderUrl:"", driveError:"",
+    photoUploadResult: null, // v20.2.5
     weightKg:null,
     // v20.2: re-derive dimensions from preserved boxSize
     dimensions: (() => {
