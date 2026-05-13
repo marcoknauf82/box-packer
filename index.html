@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Aachen Move — Box Packer v20.2.6</title>
+<title>Aachen Move — Box Packer v20.2.7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -186,7 +186,7 @@ input,select,textarea{font-family:inherit}
 <body>
 <div class="app">
   <div class="top-bar">
-    <div><div class="top-title">Box Packer</div><div class="top-sub">Aachen move · v20.2.6</div></div>
+    <div><div class="top-title">Box Packer</div><div class="top-sub">Aachen move · v20.2.7</div></div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
       <div id="top-stats" style="font-size:12px;color:var(--muted);text-align:right"></div>
       <div id="auth-indicator"></div>
@@ -830,16 +830,19 @@ function v1(){
   <div class="info-box">Shoot straight down from above. Multiple layers = one photo per layer. Up to 4 photos.</div>
   ${hp?`<div class="photo-grid">
     ${S.photos.map((p,i)=>`<div class="photo-thumb"><img src="${p}"><button class="photo-del" data-i="${i}">×</button></div>`).join("")}
-    ${S.photos.length<4?`<div class="add-photo-cell" id="add-more"><div style="font-size:24px;color:#aaa">+</div><div style="font-size:11px;color:#aaa;margin-top:4px">Add</div></div>`:""}
-  </div>`:`<div class="upload-zone" id="drop-zone">
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="#aaa" stroke-width="1.5" style="display:block;margin:0 auto">
-      <rect x="4" y="10" width="32" height="24" rx="3"/><circle cx="20" cy="22" r="6"/>
-      <path d="M14 10V8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/>
-    </svg>
-    <div class="upload-text">Tap to take a photo or pick from gallery</div>
-    <div class="upload-sub">Up to 4 images · JPG or PNG</div>
-  </div>`}
-  <input type="file" id="file-input" accept="image/*" multiple style="display:none">
+  </div>`:""}
+  ${S.photos.length<4?`
+    <div class="btn-row" style="margin-bottom:10px">
+      <button class="btn btn-primary" id="btn-camera" style="flex:1">📷 Take photo</button>
+      <button class="btn btn-secondary" id="btn-gallery" style="flex:1">🖼️ From gallery</button>
+    </div>
+    ${!hp?`<div class="upload-sub" style="text-align:center;color:#888;font-size:12px;margin-bottom:10px">Up to 4 images · JPG or PNG</div>`:""}
+  `:""}
+  <!-- v20.2.7: separate inputs — Android picker behavior changed and the combined
+       "any image" intent no longer reliably offers the camera. Two distinct buttons
+       give the user explicit control over camera vs gallery. -->
+  <input type="file" id="file-input-camera" accept="image/*" capture="environment" style="display:none">
+  <input type="file" id="file-input-gallery" accept="image/*" multiple style="display:none">
   <div class="btn-row">
     <button class="btn btn-secondary" id="btn-back1" style="flex:1">Back</button>
     <button class="btn btn-primary" id="btn-analyze" style="flex:2" ${!hp?"disabled":""}>${S.mode==="item"?"Identify item":"Analyze photos"}</button>
@@ -1269,12 +1272,13 @@ function bind(){
     toast("Manual entry — add " + (S.mode === "item" ? "details" : "items") + " below");
     r();
   });
-  q("#drop-zone")?.addEventListener("click",()=>q("#file-input").click());
-  q("#add-more")?.addEventListener("click",()=>q("#file-input").click());
-  q("#file-input")?.addEventListener("change",e=>handleFiles(e.target.files));
+  // v20.2.7: separate camera + gallery buttons. Combined "any image" intent
+  // no longer reliably offers the camera on newer Android/Chrome versions.
+  q("#btn-camera")?.addEventListener("click",()=>q("#file-input-camera").click());
+  q("#btn-gallery")?.addEventListener("click",()=>q("#file-input-gallery").click());
+  q("#file-input-camera")?.addEventListener("change",e=>handleFiles(e.target.files));
+  q("#file-input-gallery")?.addEventListener("change",e=>handleFiles(e.target.files));
   qq(".photo-del").forEach(b=>b.addEventListener("click",()=>{const i=+b.dataset.i;S.photos.splice(i,1);r();}));
-  const dz=q("#drop-zone");
-  if(dz){dz.addEventListener("dragover",e=>{e.preventDefault();dz.classList.add("drag");});dz.addEventListener("dragleave",()=>dz.classList.remove("drag"));dz.addEventListener("drop",e=>{e.preventDefault();dz.classList.remove("drag");handleFiles(e.dataTransfer.files);});}
   // Step 2
   q("#btn-back2")?.addEventListener("click",()=>{S.step=1;r();});
   q("#btn-confirm")?.addEventListener("click",confirmBox);
