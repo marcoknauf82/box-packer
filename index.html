@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Aachen Move — Box Packer v20.2.5</title>
+<title>Aachen Move — Box Packer v20.2.6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -186,7 +186,7 @@ input,select,textarea{font-family:inherit}
 <body>
 <div class="app">
   <div class="top-bar">
-    <div><div class="top-title">Box Packer</div><div class="top-sub">Aachen move · v20.2.5</div></div>
+    <div><div class="top-title">Box Packer</div><div class="top-sub">Aachen move · v20.2.6</div></div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
       <div id="top-stats" style="font-size:12px;color:var(--muted);text-align:right"></div>
       <div id="auth-indicator"></div>
@@ -255,6 +255,9 @@ const BOX_SIZES = [
   { name: "Large",        dims: "27×15×17 in",    needsPrompt: false },
   { name: "Extra Large",  dims: null,             needsPrompt: true  },
   { name: "Imperfect Box",dims: "22×15×10.5 in",  needsPrompt: false },
+  // v20.2.6: Lowe's-brand boxes — Marco picked up at Lowe's
+  { name: "Lowe's S",     dims: "16×12×12 in",    needsPrompt: false },
+  { name: "Lowe's M",     dims: "18×18×16 in",    needsPrompt: false },
   { name: "Oversized",    dims: null,             needsPrompt: true  },
 ];
 
