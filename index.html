@@ -1793,7 +1793,7 @@ async function testApiKey(){
         "anthropic-dangerous-direct-browser-access":"true",
       },
       body:JSON.stringify({
-        model:"claude-sonnet-4-20250514",
+        model:"claude-sonnet-5",
         max_tokens:10,
         messages:[{role:"user",content:"Hi"}]
       })
@@ -1832,7 +1832,7 @@ async function analyze(){
         "anthropic-dangerous-direct-browser-access":"true",
       },
       body:JSON.stringify({
-        model:"claude-sonnet-4-20250514",
+        model:"claude-sonnet-5",
         max_tokens:2500,
         system: S.mode==="item"
           ? `You are a moving inventory assistant. Analyze photos of a single item (furniture, appliance, or bulky object).
